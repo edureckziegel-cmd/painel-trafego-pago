@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Bloqueia todo o acesso direto do navegador ao banco de dados.
+// Só as Cloud Functions (rodando no servidor) podem ler/escrever os tokens.
+// Isso é o que mantém as credenciais das contas de anúncio seguras.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
