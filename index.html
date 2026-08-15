@@ -805,8 +805,8 @@
   </div>
 
   <footer>
-    <span>Painel gerado automaticamente a partir dos dados de campanha. Números fictícios para fins de demonstração.</span>
-    <span>Loja Horizonte × Agência</span>
+    <span id="footer-disclaimer">Painel gerado automaticamente a partir dos dados de campanha.</span>
+    <span>ER Tráfego Pago <span id="footer-client-name"></span></span>
   </footer>
 
 </div>
@@ -1229,7 +1229,7 @@ document.getElementById('btn-pdf').addEventListener('click', async ()=>{
     heightLeft -= pageHeight;
   }
 
-  pdf.save('relatorio-trafego-pago-loja-horizonte.pdf');
+  pdf.save(`relatorio-trafego-pago-${CLIENT_ID}.pdf`);
 
   btn.disabled = false;
   btn.textContent = original;
@@ -1267,6 +1267,7 @@ function irParaCliente(id){
 
 salvarClienteConhecido(CLIENT_ID);
 document.getElementById('client-name-display').textContent = CLIENT_ID;
+document.getElementById('footer-client-name').textContent = `× ${CLIENT_ID}`;
 document.getElementById('client-url-example').textContent =
   `${window.location.origin}/?cliente=${CLIENT_ID}`;
 
@@ -1412,6 +1413,10 @@ async function tentarCarregarDadosReais(status){
 function atualizarSeloDemonstracao(){
   const badge = document.getElementById('demo-badge');
   badge.classList.toggle('hidden', !modoDemonstracao);
+
+  document.getElementById('footer-disclaimer').textContent = modoDemonstracao
+    ? 'Painel gerado automaticamente a partir dos dados de campanha. Números fictícios para fins de demonstração.'
+    : 'Painel gerado automaticamente a partir dos dados reais das campanhas.';
 }
 
 /* =========================================================
