@@ -9,15 +9,92 @@
 const META_API_VERSION = "v21.0";
 const GOOGLE_ADS_API_VERSION = "v17";
 
+/* ---------- Segurança ---------- */
+
+// Impede que o clientId vindo da URL seja usado para "poluir" ou manipular
+// chaves do banco de dados. Só letras, números, hífen e underscore, até 60
+// caracteres — qualquer coisa fora disso é cortada/normalizada.
+function sanitizeClientId(raw) {
+  const cleaned = String(raw || "default")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .slice(0, 60);
+  return cleaned || "default";
+}
+
+// Comparação de senha em tempo constante, pra dificultar ataques de
+// "timing" (adivinhar a senha caractere por caractere medindo a demora
+// da resposta). Sempre compara todos os caracteres, não para no primeiro
+// que for diferente.
+function safeEqual(a, b) {
+  const strA = String(a);
+  const strB = String(b);
+  if (strA.length !== strB.length) return false;
+  let diff = 0;
+  for (let i = 0; i < strA.length; i++) {
+    diff |= strA.charCodeAt(i) ^ strB.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+// Confere o login/senha (HTTP Basic Auth) em TODAS as requisições, antes
+// de qualquer outra coisa rodar. Sem usuário/senha certos, nada no site
+// funciona — nem a página, nem a API.
+function checkAuth(request, env) {
+  if (!env.DASHBOARD_USER || !env.DASHBOARD_PASSWORD) {
+    // Se as credenciais não foram configuradas ainda, bloqueia por padrão
+    // (mais seguro do que deixar aberto por engano).
+    return false;
+  }
+  const header = request.headers.get("Authorization") || "";
+  if (!header.startsWith("Basic ")) return false;
+
+  let decoded;
+  try {
+    decoded = atob(header.slice(6));
+  } catch (e) {
+    return false;
+  }
+  const sep = decoded.indexOf(":");
+  if (sep === -1) return false;
+  const user = decoded.slice(0, sep);
+  const pass = decoded.slice(sep + 1);
+
+  return safeEqual(user, env.DASHBOARD_USER) && safeEqual(pass, env.DASHBOARD_PASSWORD);
+}
+
+function respostaNaoAutorizada() {
+  return new Response("Autenticação necessária.", {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": 'Basic realm="Painel de Tráfego Pago", charset="UTF-8"',
+      "Content-Type": "text/plain; charset=utf-8",
+    },
+  });
+}
+
+// Cabeçalhos de segurança aplicados em toda resposta: impedem que o site
+// seja carregado dentro de um iframe de outro site (clickjacking), e
+// impedem que o navegador tente "adivinhar" tipos de arquivo incorretos.
+function comHeadersSeguranca(response) {
+  const nova = new Response(response.body, response);
+  nova.headers.set("X-Frame-Options", "DENY");
+  nova.headers.set("X-Content-Type-Options", "nosniff");
+  nova.headers.set("Referrer-Policy", "same-origin");
+  nova.headers.set("Content-Security-Policy", "frame-ancestors 'none';");
+  return nova;
+}
+
 /* ---------- Armazenamento (Workers KV) ---------- */
 async function getClient(env, clientId) {
-  const raw = await env.CLIENTS_KV.get(`client:${clientId}`);
+  const raw = await env.CLIENTS_KV.get(`client:${sanitizeClientId(clientId)}`);
   return raw ? JSON.parse(raw) : {};
 }
 async function saveClient(env, clientId, patch) {
-  const current = await getClient(env, clientId);
+  const id = sanitizeClientId(clientId);
+  const current = await getClient(env, id);
   const updated = { ...current, ...patch };
-  await env.CLIENTS_KV.put(`client:${clientId}`, JSON.stringify(updated));
+  await env.CLIENTS_KV.put(`client:${id}`, JSON.stringify(updated));
   return updated;
 }
 function json(data, status = 200) {
@@ -279,22 +356,29 @@ async function apiMetrics(url, env) {
 /* ---------- Roteador principal ---------- */
 export default {
   async fetch(request, env, ctx) {
+    // Primeiro de tudo: exige login e senha. Sem isso, nada mais roda —
+    // nem a página, nem nenhuma rota de API.
+    if (!checkAuth(request, env)) {
+      return respostaNaoAutorizada();
+    }
+
     const url = new URL(request.url);
     const { pathname } = url;
 
+    let resposta;
     try {
-      if (pathname === "/api/auth/google/start") return authGoogleStart(url, env);
-      if (pathname === "/api/auth/google/callback") return authGoogleCallback(url, env);
-      if (pathname === "/api/auth/meta/start") return authMetaStart(url, env);
-      if (pathname === "/api/auth/meta/callback") return authMetaCallback(url, env);
-      if (pathname === "/api/status" && request.method === "GET") return apiStatus(url, env);
-      if (pathname === "/api/client-config" && request.method === "POST") return apiClientConfig(request, url, env);
-      if (pathname === "/api/metrics" && request.method === "GET") return apiMetrics(url, env);
+      if (pathname === "/api/auth/google/start") resposta = await authGoogleStart(url, env);
+      else if (pathname === "/api/auth/google/callback") resposta = await authGoogleCallback(url, env);
+      else if (pathname === "/api/auth/meta/start") resposta = await authMetaStart(url, env);
+      else if (pathname === "/api/auth/meta/callback") resposta = await authMetaCallback(url, env);
+      else if (pathname === "/api/status" && request.method === "GET") resposta = await apiStatus(url, env);
+      else if (pathname === "/api/client-config" && request.method === "POST") resposta = await apiClientConfig(request, url, env);
+      else if (pathname === "/api/metrics" && request.method === "GET") resposta = await apiMetrics(url, env);
+      else resposta = await env.ASSETS.fetch(request);
     } catch (err) {
-      return json({ error: err.message }, 500);
+      resposta = json({ error: err.message }, 500);
     }
 
-    // Qualquer outra URL: devolve os arquivos estáticos (o painel em si)
-    return env.ASSETS.fetch(request);
+    return comHeadersSeguranca(resposta);
   },
 };
