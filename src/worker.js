@@ -51,7 +51,14 @@ function checkAuth(request, env) {
 
   let decoded;
   try {
-    decoded = atob(header.slice(6));
+    // atob() devolve os bytes originais como uma "string binária" (um
+    // caractere por byte). Se o usuário/senha tiver acento ou símbolo
+    // especial, esses bytes representam UTF-8 e precisam ser decodificados
+    // de volta corretamente — senão a comparação nunca bate, mesmo
+    // digitando a senha certa.
+    const binario = atob(header.slice(6));
+    const bytes = Uint8Array.from(binario, (c) => c.charCodeAt(0));
+    decoded = new TextDecoder("utf-8").decode(bytes);
   } catch (e) {
     return false;
   }
@@ -110,7 +117,9 @@ function paginaSucesso(nome) {
   </body></html>`;
 }
 
-/* ---------- Google Ads ---------- */
+/* ======================================================================
+   GOOGLE ADS — OAuth
+   ====================================================================== */
 async function authGoogleStart(url, env) {
   const clientId = url.searchParams.get("clientId") || "default";
   const redirectUri = `${env.APP_BASE_URL}/api/auth/google/callback`;
@@ -144,6 +153,7 @@ async function authGoogleCallback(url, env) {
     }),
   });
   const tokenData = await tokenRes.json();
+
   if (tokenData.error) {
     return new Response("Erro ao conectar Google Ads: " + (tokenData.error_description || tokenData.error), { status: 500 });
   }
@@ -152,7 +162,9 @@ async function authGoogleCallback(url, env) {
     google: { refresh_token: tokenData.refresh_token, connected_at: Date.now() },
   });
 
-  return new Response(paginaSucesso("Google Ads"), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new Response(paginaSucesso("Google Ads"), {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
 }
 
 async function getGoogleAccessToken(env, refreshToken) {
@@ -209,7 +221,9 @@ async function fetchGoogleAdsData(env, refreshToken, customerId, start, end) {
   return byDay;
 }
 
-/* ---------- Meta Ads ---------- */
+/* ======================================================================
+   META ADS (Facebook/Instagram) — OAuth
+   ====================================================================== */
 async function authMetaStart(url, env) {
   const clientId = url.searchParams.get("clientId") || "default";
   const redirectUri = `${env.APP_BASE_URL}/api/auth/meta/callback`;
@@ -253,7 +267,9 @@ async function authMetaCallback(url, env) {
     meta: { access_token: longData.access_token || tokenData.access_token, connected_at: Date.now() },
   });
 
-  return new Response(paginaSucesso("Meta Ads"), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new Response(paginaSucesso("Meta Ads"), {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
 }
 
 async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) {
@@ -270,9 +286,6 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
-  // Tipos de ação que contam como "resultado/conversão". Cobre os objetivos
-  // mais comuns: vendas, cadastros e também conversas iniciadas (campanhas
-  // de mensagem, muito comuns no Meta Ads de pequenos negócios).
   const TIPOS_CONVERSAO = [
     "lead", "purchase", "offsite_conversion", "onsite_conversion",
     "complete_registration", "messaging_conversation_started",
@@ -290,9 +303,6 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
       fbClicks: 0, igClicks: 0, profileVisits: 0, newFollowers: 0,
     };
 
-    // Cliques no link — é essa a métrica que aparece no Gerenciador de
-    // Anúncios como "Cliques no link" (mais relevante do que o campo bruto
-    // "clicks", que também conta curtidas, comentários e outras interações).
     const acoes = r.actions || [];
     const linkClicks = acoes
       .filter((a) => a.action_type === "link_click")
@@ -308,9 +318,6 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
     byDay[day].conversions += conversoes.reduce((soma, a) => soma + Number(a.value || 0), 0);
   });
 
-  // Visitas ao perfil e novos seguidores — exige a conta comercial do
-  // Instagram vinculada (o campo "Meta Ads — Instagram User ID" na
-  // configuração do cliente). Sem esse ID, ficam zerados.
   if (igUserId) {
     try {
       const igUrl =
