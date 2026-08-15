@@ -70,13 +70,21 @@
   .topbar{
     display:flex;
     justify-content:space-between;
-    align-items:flex-start;
+    align-items:center;
     flex-wrap:wrap;
     gap:20px;
-    padding-bottom:22px;
-    border-bottom:1px solid var(--card-border);
-    margin-bottom:26px;
+    padding:20px 26px;
+    margin-bottom:22px;
+    position:relative;
+    overflow:hidden;
+    background:
+      radial-gradient(480px circle at 88% -30%, rgba(58,152,174,0.45), transparent 60%),
+      radial-gradient(420px circle at 6% 130%, rgba(58,152,174,0.20), transparent 60%),
+      linear-gradient(135deg, #14181a 0%, var(--navy) 100%);
+    border-radius:20px;
+    box-shadow:0 10px 26px rgba(20,30,35,0.22);
   }
+  .topbar > *{ position:relative; z-index:1; }
 
   .brand{
     display:flex;
@@ -85,18 +93,18 @@
   }
 
   .brand-mark{
-    width:46px;height:46px;
+    width:48px;height:48px;
     border-radius:50%;
     object-fit:cover;
     flex-shrink:0;
-    box-shadow:0 2px 6px rgba(38,74,96,0.18);
+    box-shadow:0 0 0 2px rgba(255,255,255,0.15);
   }
 
   .brand-text .eyebrow{
     font-size:11px;
     letter-spacing:.14em;
     text-transform:uppercase;
-    color:var(--teal-dark);
+    color:var(--teal);
     font-weight:700;
     margin-bottom:2px;
   }
@@ -105,6 +113,7 @@
     font-size:22px;
     font-weight:700;
     letter-spacing:.01em;
+    color:#fff;
   }
 
   .client-meta{
@@ -114,7 +123,7 @@
     font-size:11px;
     letter-spacing:.14em;
     text-transform:uppercase;
-    color:var(--teal-dark);
+    color:var(--teal);
     font-weight:700;
     margin-bottom:4px;
   }
@@ -133,15 +142,15 @@
     font-family:'League Spartan';
     font-size:26px;
     letter-spacing:.01em;
-    color:var(--navy);
+    color:#fff;
     font-weight:800;
   }
   .client-switch-icon{
-    color:var(--teal-dark);
+    color:var(--teal);
     font-size:14px;
     margin-top:4px;
   }
-  .client-switch:hover strong{ color:var(--teal-dark); }
+  .client-switch:hover strong{ color:var(--teal); }
 
   /* ===== Filters ===== */
   /* ===== Connection bar ===== */
@@ -150,12 +159,15 @@
     align-items:center;
     gap:22px;
     flex-wrap:wrap;
-    background:#fff;
-    border:1px solid var(--card-border);
-    border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.82));
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.85);
+    border-radius:16px;
     padding:12px 18px;
     margin-bottom:18px;
     font-size:13px;
+    box-shadow:0 6px 18px rgba(38,74,96,0.06);
   }
   .connection-status{display:flex; align-items:center; gap:8px;}
   .connection-bar-right{
@@ -182,8 +194,9 @@
     padding:5px 12px;
     border-radius:20px;
     cursor:pointer;
+    transition:background .15s ease, transform .15s ease;
   }
-  .btn-connect:hover{background:var(--teal-tint);}
+  .btn-connect:hover{background:var(--teal-tint); transform:translateY(-1px);}
   .demo-badge{
     font-size:11.5px;
     font-weight:700;
@@ -201,11 +214,14 @@
     display:flex;
     gap:28px;
     flex-wrap:wrap;
-    background:#fff;
-    border:1px solid var(--card-border);
-    border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.82));
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.85);
+    border-radius:16px;
     padding:18px 20px;
     margin-bottom:18px;
+    box-shadow:0 6px 18px rgba(38,74,96,0.06);
   }
   .client-panel-col{
     flex:1 1 260px;
@@ -274,18 +290,55 @@
     color:var(--good, #2f9e6e);
   }
 
+  /* ===== Tooltip explicativo nas métricas ===== */
+  .kpi-card .label{
+    position:relative;
+    cursor:help;
+    width:fit-content;
+    border-bottom:1px dotted #c7d1d5;
+  }
+  .kpi-card .label:hover::after{
+    content:attr(data-tip);
+    position:absolute;
+    bottom:calc(100% + 8px);
+    left:0;
+    width:220px;
+    background:var(--navy);
+    color:#fff;
+    font-size:12px;
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:normal;
+    padding:10px 12px;
+    border-radius:8px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.18);
+    z-index:50;
+    line-height:1.4;
+  }
+  .kpi-card .label:hover::before{
+    content:"";
+    position:absolute;
+    bottom:calc(100% + 2px);
+    left:14px;
+    border:6px solid transparent;
+    border-top-color:var(--navy);
+    z-index:50;
+  }
+
   .filters{
     display:flex;
     align-items:flex-end;
     justify-content:space-between;
     flex-wrap:wrap;
     gap:16px;
-    background:#fff;
-    border:1px solid var(--card-border);
-    border-radius:14px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.85);
+    border-radius:18px;
     padding:16px 20px;
     margin-bottom:24px;
-    box-shadow:var(--shadow);
+    box-shadow:0 10px 26px rgba(38,74,96,0.07);
   }
 
   .filter-group{display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;}
@@ -304,7 +357,7 @@
     font-family:'Aileron', sans-serif;
     font-size:13.5px;
     padding:8px 10px;
-    border-radius:8px;
+    border-radius:9px;
     border:1px solid #d7e1e5;
     background:#fbfdfd;
     color:var(--navy);
@@ -325,14 +378,19 @@
     transition:.15s;
   }
   .chip:hover{background:var(--teal-tint);}
-  .chip.active{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .chip.active{
+    background:linear-gradient(135deg, var(--teal), var(--navy));
+    color:#fff;
+    border-color:transparent;
+    box-shadow:0 4px 12px rgba(58,152,174,0.35);
+  }
 
   .btn-pdf{
-    background:var(--navy);
+    background:linear-gradient(135deg, var(--teal) 0%, var(--navy) 100%);
     color:#fff;
     border:none;
-    padding:11px 20px;
-    border-radius:9px;
+    padding:11px 22px;
+    border-radius:999px;
     font-family:'League Spartan';
     font-weight:600;
     font-size:14px;
@@ -340,11 +398,12 @@
     display:flex;
     align-items:center;
     gap:8px;
-    transition:.15s;
+    transition:transform .15s ease, box-shadow .15s ease;
     white-space:nowrap;
+    box-shadow:0 8px 20px rgba(38,74,96,0.28);
   }
-  .btn-pdf:hover{background:var(--teal-dark);}
-  .btn-pdf:disabled{opacity:.6; cursor:progress;}
+  .btn-pdf:hover{ transform:translateY(-1px); box-shadow:0 12px 26px rgba(38,74,96,0.34); }
+  .btn-pdf:disabled{opacity:.6; cursor:progress; transform:none;}
 
   /* ===== Section headers ===== */
   .section-head{
@@ -354,6 +413,13 @@
     margin:38px 0 16px;
     flex-wrap:wrap;
     gap:8px;
+  }
+  .section-head{ position:relative; padding-left:14px; }
+  .section-head::before{
+    content:"";
+    position:absolute; left:0; top:2px; bottom:2px; width:4px;
+    border-radius:4px;
+    background:linear-gradient(180deg, var(--teal), var(--navy));
   }
   .section-head h2{font-size:19px; font-weight:700;}
   .section-head .sub{font-size:14px; color:var(--teal-dark);}
@@ -368,29 +434,55 @@
     border-radius:20px;
   }
 
-  /* ===== KPI cards ===== */
+  /* ===== KPI cards — estilo "vidro" com brilho suave ===== */
   .kpi-grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
     gap:14px;
+    position:relative;
+    padding:6px;
+    margin:-6px;
+  }
+  .kpi-grid::before{
+    content:"";
+    position:absolute; inset:0;
+    z-index:-1;
+    background:
+      radial-gradient(360px circle at 12% 18%, rgba(58,152,174,0.14), transparent 62%),
+      radial-gradient(340px circle at 92% 82%, rgba(38,74,96,0.10), transparent 60%);
+    border-radius:26px;
   }
   @media (max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
 
   .kpi-card{
-    background:#fff;
-    border:1px solid var(--card-border);
-    border-radius:14px;
-    padding:16px 18px;
-    box-shadow:var(--shadow);
+    background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.9);
+    border-radius:18px;
+    padding:17px 18px;
+    box-shadow:0 10px 26px rgba(38,74,96,0.09), inset 0 1px 0 rgba(255,255,255,0.6);
     position:relative;
     overflow:hidden;
+    transition:transform .18s ease, box-shadow .18s ease;
   }
-  .kpi-card::before{
-    content:"";
-    position:absolute; left:0; top:0; bottom:0; width:4px;
-    background:var(--teal);
+  .kpi-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 14px 30px rgba(38,74,96,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
   }
-  .kpi-card.navy::before{background:var(--navy);}
+  .kpi-icon{
+    width:32px; height:32px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px;
+    margin-bottom:12px;
+    background:linear-gradient(135deg, rgba(58,152,174,0.16), rgba(58,152,174,0.06));
+    color:var(--teal-dark);
+  }
+  .kpi-card.navy .kpi-icon{
+    background:linear-gradient(135deg, rgba(38,74,96,0.16), rgba(38,74,96,0.06));
+    color:var(--navy);
+  }
   .kpi-card .label{
     font-size:11.5px;
     text-transform:uppercase;
@@ -401,7 +493,7 @@
   }
   .kpi-card .value{
     font-family:'League Spartan';
-    font-size:26px;
+    font-size:27px;
     font-weight:700;
     color:var(--navy);
     line-height:1;
@@ -414,14 +506,23 @@
   .delta.up{color:var(--good);}
   .delta.down{color:#c25b4f;}
   .delta.flat{color:var(--gray);}
+  .sparkline{
+    display:block;
+    width:100%;
+    height:26px;
+    margin-top:10px;
+    opacity:.85;
+  }
 
   /* ===== Cards / panels ===== */
   .panel{
-    background:#fff;
-    border:1px solid var(--card-border);
-    border-radius:14px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.86));
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.85);
+    border-radius:18px;
     padding:20px 22px;
-    box-shadow:var(--shadow);
+    box-shadow:0 10px 26px rgba(38,74,96,0.08);
   }
 
   .grid-2{
@@ -449,19 +550,23 @@
   }
   .platform-pill{
     flex:1;
-    border-radius:12px;
+    border-radius:16px;
     padding:14px 16px;
     display:flex;
     align-items:center;
     gap:12px;
+    border:1px solid transparent;
+    transition:transform .15s ease;
   }
-  .platform-pill.fb{background:#eaf2fb;}
-  .platform-pill.ig{background:#fbeef6;}
+  .platform-pill:hover{ transform:translateY(-1px); }
+  .platform-pill.fb{background:linear-gradient(135deg, #eaf2fb, #f5f9fe); border-color:rgba(59,89,152,0.12);}
+  .platform-pill.ig{background:linear-gradient(135deg, #fbeef6, #fdf4f9); border-color:rgba(221,42,123,0.12);}
   .pill-icon{
-    width:40px;height:40px;border-radius:11px;
+    width:40px;height:40px;border-radius:12px;
     display:block;
     flex-shrink:0;
     object-fit:cover;
+    box-shadow:0 4px 10px rgba(38,74,96,0.12);
   }
   .pill-text .n{font-family:'League Spartan'; font-weight:700; color:var(--navy); font-size:18px;}
   .pill-text .l{font-size:12px; color:var(--gray);}
@@ -479,16 +584,20 @@
     text-transform:uppercase;
     letter-spacing:.05em;
     color:var(--navy);
-    border-bottom:2px solid var(--card-border);
-    padding:10px 12px;
+    background:var(--teal-tint);
+    border-bottom:2px solid rgba(58,152,174,0.18);
+    padding:11px 12px;
     white-space:nowrap;
   }
+  thead th:first-child{ border-top-left-radius:10px; }
+  thead th:last-child{ border-top-right-radius:10px; }
   tbody td{
     padding:11px 12px;
     border-bottom:1px solid #eef2f3;
     color:var(--gray);
     white-space:nowrap;
   }
+  tbody tr{ transition:background .12s ease; }
   tbody tr:hover{background:var(--teal-tint);}
   .tag{
     font-size:11px;
@@ -499,15 +608,22 @@
   }
   .tag.meta{background:#eaf2fb; color:#3b5998;}
   .tag.google{background:#fdeeee; color:#c5473f;}
-  .table-wrap{overflow-x:auto;}
+  .table-wrap{overflow-x:auto; border-radius:10px;}
 
   /* ===== Analysis ===== */
   .analysis-panel{
-    background:linear-gradient(160deg, var(--navy) 0%, #1c3a4c 100%);
+    position:relative;
+    overflow:hidden;
+    background:
+      radial-gradient(420px circle at 92% -10%, rgba(58,152,174,0.35), transparent 60%),
+      radial-gradient(380px circle at 4% 115%, rgba(58,152,174,0.16), transparent 60%),
+      linear-gradient(160deg, var(--navy) 0%, #1c3a4c 100%);
     color:#eaf3f6;
-    border-radius:16px;
+    border-radius:20px;
     padding:28px 30px;
+    box-shadow:0 14px 32px rgba(20,30,35,0.18);
   }
+  .analysis-panel > *{ position:relative; z-index:1; }
   .analysis-panel .section-tag{background:rgba(255,255,255,.12); color:#dff3f7;}
   .analysis-panel h2{color:#fff;}
   .analysis-panel .sub{color:#9fd3e0;}
@@ -525,6 +641,7 @@
   }
   .insight-chip{
     background:rgba(255,255,255,.08);
+    backdrop-filter:blur(4px);
     border:1px solid rgba(255,255,255,.18);
     padding:9px 14px;
     border-radius:10px;
@@ -604,9 +721,24 @@
   @media print{
     .filters, .btn-pdf{display:none;}
   }
+
+  /* ===== Barra de carregamento ===== */
+  #top-loading-bar{
+    position:fixed;
+    top:0; left:0;
+    height:3px;
+    width:0%;
+    background:linear-gradient(90deg, var(--teal), var(--navy));
+    z-index:9999;
+    opacity:0;
+    transition:width .5s ease, opacity .3s ease;
+  }
+  #top-loading-bar.active{ opacity:1; width:75%; }
+  #top-loading-bar.done{ width:100%; opacity:0; }
 </style>
 </head>
 <body>
+<div id="top-loading-bar"></div>
 
 <div id="capture-area">
 
@@ -889,6 +1021,30 @@ let modoDemonstracao = true;
 // Receita fictícia associada às conversões (ticket médio ~ R$145)
 const TICKET_MEDIO = 145;
 
+// Explicações em linguagem simples, para quem não é da área de marketing.
+const EXPLICACAO_METRICA = {
+  'Investimento total': 'Quanto foi gasto em anúncios no período selecionado, somando todas as plataformas.',
+  'Impressões': 'Quantas vezes o anúncio apareceu na tela de alguém — não significa que a pessoa clicou ou reparou nele.',
+  'Cliques': 'Quantas vezes alguém clicou no anúncio para ser levado ao site, WhatsApp ou perfil.',
+  'CTR médio': 'Taxa de cliques: de cada 100 pessoas que viram o anúncio, quantas clicaram. Quanto maior, mais o anúncio chama atenção.',
+  'CPC médio': 'Custo por clique: quanto, em média, foi pago por cada clique recebido.',
+  'Resultados (conversões)': 'Quantas ações importantes aconteceram (compra, cadastro, mensagem iniciada, etc.), de acordo com o objetivo da campanha.',
+  'Custo por resultado': 'Quanto custou, em média, cada resultado alcançado (cada venda, cadastro ou conversa iniciada).',
+  'ROAS (retorno estimado)': 'Retorno sobre o investimento: quanto voltou em vendas estimadas para cada R$1 gasto em anúncios.',
+};
+
+// Explicações das métricas exclusivas do Meta Ads.
+const EXPLICACAO_META = {
+  'Visitas ao perfil': 'Quantas vezes o perfil do Instagram foi visitado depois de ver o anúncio.',
+  'Novos seguidores': 'Quantas pessoas novas passaram a seguir o perfil no período.',
+  'Investimento Meta Ads': 'Quanto foi investido especificamente em anúncios no Facebook e Instagram.',
+  'Conversões Meta Ads': 'Quantos resultados (vendas, cadastros, conversas) vieram especificamente do Meta Ads.',
+};
+
+function tip(texto){
+  return texto ? `data-tip="${texto.replace(/"/g,'&quot;')}"` : '';
+}
+
 const campaignsBase = [
   { name:"Institucional: Reconhecimento", platform:"meta",   shareInvest:0.16, ctrBase:0.014, cpcBase:2.35 },
   { name:"Remarketing: Carrinho Abandonado", platform:"meta", shareInvest:0.20, ctrBase:0.021, cpcBase:1.95 },
@@ -966,39 +1122,105 @@ function render(){
   const receita = totalConv * TICKET_MEDIO;
   const roas = totalInvest ? receita/totalInvest : 0;
 
+  // ---- Comparação com o período anterior equivalente ----
+  const inicio = new Date(document.getElementById('date-start').value);
+  const fim = new Date(document.getElementById('date-end').value);
+  const duracaoDias = Math.round((fim - inicio) / 86400000) + 1;
+  const inicioAnterior = new Date(inicio); inicioAnterior.setDate(inicioAnterior.getDate() - duracaoDias);
+  const fimAnterior = new Date(inicio); fimAnterior.setDate(fimAnterior.getDate() - 1);
+  const diasAnteriores = dailyData.filter(r => r.date >= inicioAnterior && r.date <= fimAnterior);
+
+  let deltaInvest = null, deltaClicks = null, deltaConv = null, deltaRoas = null;
+  if(diasAnteriores.length === duracaoDias){
+    const aggAnterior = aggregate(diasAnteriores);
+    const investAnt = (showGoogle?aggAnterior.google.invest:0) + (showMeta?aggAnterior.meta.invest:0);
+    const clicksAnt = (showGoogle?aggAnterior.google.clicks:0) + (showMeta?aggAnterior.meta.clicks:0);
+    const convAnt = (showGoogle?aggAnterior.google.conversions:0) + (showMeta?aggAnterior.meta.conversions:0);
+    const receitaAnt = convAnt * TICKET_MEDIO;
+    const roasAnt = investAnt ? receitaAnt/investAnt : 0;
+
+    const calcDelta = (atual, anterior) => anterior ? ((atual-anterior)/anterior)*100 : null;
+    deltaInvest = calcDelta(totalInvest, investAnt);
+    deltaClicks = calcDelta(totalClicks, clicksAnt);
+    deltaConv = calcDelta(totalConv, convAnt);
+    deltaRoas = calcDelta(roas, roasAnt);
+  }
+
+  function deltaHtml(delta){
+    if(delta === null || !isFinite(delta)) return '';
+    const positivo = delta >= 0;
+    const cor = positivo ? 'var(--good)' : '#c25b4f';
+    const seta = positivo ? '▲' : '▼';
+    return `<div class="delta" style="color:${cor};">${seta} ${Math.abs(delta).toFixed(0)}% vs. período anterior</div>`;
+  }
+
+  // ---- Sparklines (mini-gráfico de tendência dentro do card) ----
+  function sparklineSVG(values, cor){
+    if(!values || values.length < 2) return '';
+    const w = 100, h = 26, pad = 2;
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = (max - min) || 1;
+    const stepX = (w - pad*2) / (values.length - 1);
+    const pontos = values.map((v,i)=>{
+      const x = pad + i*stepX;
+      const y = h - pad - ((v-min)/range) * (h - pad*2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const areaId = 'spark' + Math.random().toString(36).slice(2,8);
+    return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <polyline points="${pontos}" fill="none" stroke="${cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  const investSerie = days.map(d => (showGoogle?d.google.invest:0) + (showMeta?d.meta.invest:0));
+  const clicksSerie = days.map(d => (showGoogle?d.google.clicks:0) + (showMeta?d.meta.clicks:0));
+  const convSerie = days.map(d => (showGoogle?d.google.conversions:0) + (showMeta?d.meta.conversions:0));
+  const roasSerie = days.map(d => {
+    const inv = (showGoogle?d.google.invest:0) + (showMeta?d.meta.invest:0);
+    const conv = (showGoogle?d.google.conversions:0) + (showMeta?d.meta.conversions:0);
+    return inv ? (conv*TICKET_MEDIO)/inv : 0;
+  });
+
   // ---- KPI cards principais ----
   const kpis = [
-    {label:'Investimento total', value:fmtBRL(totalInvest), navy:true},
-    {label:'Impressões', value:fmtInt(totalImpr)},
-    {label:'Cliques', value:fmtInt(totalClicks)},
-    {label:'CTR médio', value:fmtPct(ctr)},
-    {label:'CPC médio', value:fmtBRL2(cpc)},
-    {label:'Resultados (conversões)', value:fmtInt(totalConv), navy:true},
-    {label:'Custo por resultado', value:fmtBRL2(cpa)},
-    {label:'ROAS (retorno estimado)', value:roas.toFixed(2)+'x', navy:true},
+    {label:'Investimento total', value:fmtBRL(totalInvest), navy:true, delta:deltaHtml(deltaInvest), icon:'💰', spark:sparklineSVG(investSerie,'#3a98ae')},
+    {label:'Impressões', value:fmtInt(totalImpr), icon:'👁'},
+    {label:'Cliques', value:fmtInt(totalClicks), delta:deltaHtml(deltaClicks), icon:'🖱', spark:sparklineSVG(clicksSerie,'#3a98ae')},
+    {label:'CTR médio', value:fmtPct(ctr), icon:'📈'},
+    {label:'CPC médio', value:fmtBRL2(cpc), icon:'💳'},
+    {label:'Resultados (conversões)', value:fmtInt(totalConv), navy:true, delta:deltaHtml(deltaConv), icon:'🎯', spark:sparklineSVG(convSerie,'#264a60')},
+    {label:'Custo por resultado', value:fmtBRL2(cpa), icon:'🧾'},
+    {label:'ROAS (retorno estimado)', value:roas.toFixed(2)+'x', navy:true, delta:deltaHtml(deltaRoas), icon:'🚀', spark:sparklineSVG(roasSerie,'#264a60')},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
     <div class="kpi-card ${k.navy?'navy':''}">
-      <div class="label">${k.label}</div>
+      <div class="kpi-icon">${k.icon || ''}</div>
+      <div class="label" ${tip(EXPLICACAO_METRICA[k.label])}>${k.label}</div>
       <div class="value">${k.value}</div>
+      ${k.delta || ''}
+      ${k.spark || ''}
     </div>`).join('');
 
   // ---- Meta extra KPIs ----
   document.getElementById('meta-extra-kpis').innerHTML = `
     <div class="kpi-card">
-      <div class="label">Visitas ao perfil</div>
+      <div class="kpi-icon">👀</div>
+      <div class="label" ${tip(EXPLICACAO_META['Visitas ao perfil'])}>Visitas ao perfil</div>
       <div class="value">${fmtInt(agg.meta.profileVisits)}</div>
     </div>
     <div class="kpi-card navy">
-      <div class="label">Novos seguidores</div>
+      <div class="kpi-icon">➕</div>
+      <div class="label" ${tip(EXPLICACAO_META['Novos seguidores'])}>Novos seguidores</div>
       <div class="value">${fmtInt(agg.meta.newFollowers)}</div>
     </div>
     <div class="kpi-card">
-      <div class="label">Investimento Meta Ads</div>
+      <div class="kpi-icon">💰</div>
+      <div class="label" ${tip(EXPLICACAO_META['Investimento Meta Ads'])}>Investimento Meta Ads</div>
       <div class="value">${fmtBRL(agg.meta.invest)}</div>
     </div>
     <div class="kpi-card navy">
-      <div class="label">Conversões Meta Ads</div>
+      <div class="kpi-icon">🎯</div>
+      <div class="label" ${tip(EXPLICACAO_META['Conversões Meta Ads'])}>Conversões Meta Ads</div>
       <div class="value">${fmtInt(agg.meta.conversions)}</div>
     </div>`;
   document.getElementById('fb-clicks').textContent = fmtInt(agg.meta.fbClicks);
@@ -1319,6 +1541,7 @@ document.getElementById('account-config-save').addEventListener('click', async (
   };
   btn.disabled = true;
   statusEl.textContent = 'Salvando...';
+  mostrarCarregando();
   try{
     const resp = await fetch(`/api/client-config?clientId=${encodeURIComponent(CLIENT_ID)}`, {
       method: 'POST',
@@ -1335,6 +1558,7 @@ document.getElementById('account-config-save').addEventListener('click', async (
   }catch(e){
     statusEl.textContent = '⚠ Não foi possível salvar. Tente de novo.';
   }
+  esconderCarregando();
   btn.disabled = false;
 });
 
@@ -1420,13 +1644,29 @@ function atualizarSeloDemonstracao(){
 }
 
 /* =========================================================
-   10. INIT
+   10. BARRA DE CARREGAMENTO
+   ========================================================= */
+function mostrarCarregando(){
+  const bar = document.getElementById('top-loading-bar');
+  bar.classList.remove('done');
+  bar.classList.add('active');
+}
+function esconderCarregando(){
+  const bar = document.getElementById('top-loading-bar');
+  bar.classList.add('done');
+  setTimeout(()=>{ bar.classList.remove('active','done'); }, 400);
+}
+
+/* =========================================================
+   11. INIT
    ========================================================= */
 (async function init(){
+  mostrarCarregando();
   const status = await verificarConexoes();
   await tentarCarregarDadosReais(status);
   atualizarSeloDemonstracao();
   render();
+  esconderCarregando();
 })();
 </script>
 </body>
