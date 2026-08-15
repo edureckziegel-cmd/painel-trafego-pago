@@ -4,6 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Painel de Tráfego Pago | Relatório de Campanhas</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/er_logo_32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/er_logo_16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/er_logo_180.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/er_logo_512.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,11 +86,10 @@
 
   .brand-mark{
     width:46px;height:46px;
-    border-radius:12px;
-    background:linear-gradient(145deg, var(--teal), var(--navy));
-    display:flex;align-items:center;justify-content:center;
-    color:#fff;font-family:'League Spartan';font-weight:800;font-size:20px;
+    border-radius:50%;
+    object-fit:cover;
     flex-shrink:0;
+    box-shadow:0 2px 6px rgba(38,74,96,0.18);
   }
 
   .brand-text .eyebrow{
@@ -115,7 +118,17 @@
     font-weight:700;
     margin-bottom:4px;
   }
-  .client-meta strong{
+  .client-switch{
+    background:none;
+    border:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:0;
+    font-family:inherit;
+  }
+  .client-switch strong{
     display:block;
     font-family:'League Spartan';
     font-size:26px;
@@ -123,6 +136,12 @@
     color:var(--navy);
     font-weight:800;
   }
+  .client-switch-icon{
+    color:var(--teal-dark);
+    font-size:14px;
+    margin-top:4px;
+  }
+  .client-switch:hover strong{ color:var(--teal-dark); }
 
   /* ===== Filters ===== */
   /* ===== Connection bar ===== */
@@ -139,6 +158,13 @@
     font-size:13px;
   }
   .connection-status{display:flex; align-items:center; gap:8px;}
+  .connection-bar-right{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
   .conn-dot{
     width:9px;height:9px;border-radius:50%;
     background:#c7d1d5;
@@ -159,7 +185,6 @@
   }
   .btn-connect:hover{background:var(--teal-tint);}
   .demo-badge{
-    margin-left:auto;
     font-size:11.5px;
     font-weight:700;
     letter-spacing:.04em;
@@ -170,6 +195,84 @@
     border-radius:20px;
   }
   .demo-badge.hidden{display:none;}
+
+  /* ===== Client switch / account config panels ===== */
+  .client-panel{
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+    background:#fff;
+    border:1px solid var(--card-border);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:18px;
+  }
+  .client-panel-col{
+    flex:1 1 260px;
+  }
+  .client-panel label{
+    display:block;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-weight:700;
+    color:var(--navy);
+    margin-bottom:10px;
+  }
+  .client-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .client-chip{
+    border:1px solid #d7e1e5;
+    background:#fbfdfd;
+    color:var(--navy);
+    font-size:12.5px;
+    padding:7px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    font-family:'Aileron';
+  }
+  .client-chip:hover{ background:var(--teal-tint); }
+  .client-chip.active{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .client-panel-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .client-panel input[type=text]{
+    font-family:'Aileron';
+    font-size:13.5px;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid #d7e1e5;
+    background:#fbfdfd;
+    color:var(--navy);
+    flex:1 1 180px;
+  }
+  .client-panel-hint{
+    font-size:12px;
+    color:var(--gray);
+    margin-top:10px;
+  }
+  .client-panel-hint code{
+    background:var(--teal-tint);
+    padding:2px 6px;
+    border-radius:4px;
+    color:var(--teal-dark);
+  }
+  .account-config-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+  }
+  @media (max-width:760px){ .account-config-grid{ grid-template-columns:1fr; } }
+  #account-config-status{
+    font-size:12.5px;
+    color:var(--good, #2f9e6e);
+  }
 
   .filters{
     display:flex;
@@ -510,7 +613,7 @@
   <!-- ===== HEADER ===== -->
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">MT</div>
+      <img class="brand-mark" src="/er_logo.png" alt="ER Tráfego Pago">
       <div class="brand-text">
         <div class="eyebrow">Relatório de Mídia Paga</div>
         <h1>Painel de Tráfego Pago</h1>
@@ -518,7 +621,54 @@
     </div>
     <div class="client-meta">
       <div class="client-eyebrow">Cliente</div>
-      <strong>Loja Horizonte</strong>
+      <button class="client-switch" id="client-switch-btn">
+        <strong id="client-name-display">Loja Horizonte</strong>
+        <span class="client-switch-icon">▾</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== SELETOR DE CLIENTE (oculto até clicar) ===== -->
+  <div class="client-panel" id="client-panel" style="display:none;">
+    <div class="client-panel-col">
+      <label>Trocar para um cliente já usado neste navegador</label>
+      <div class="client-list" id="client-list"></div>
+    </div>
+    <div class="client-panel-col">
+      <label>Ou digitar/criar um cliente</label>
+      <div class="client-panel-row">
+        <input type="text" id="client-input" placeholder="ex: loja-horizonte">
+        <button class="btn-connect" id="client-switch-go">Ir para esse cliente</button>
+      </div>
+      <p class="client-panel-hint">
+        Cada cliente tem seu próprio link. Você pode salvar/compartilhar
+        cada um assim: <code id="client-url-example"></code>
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== CONFIGURAÇÃO DAS CONTAS DO CLIENTE ===== -->
+  <div class="client-panel" id="account-config-panel" style="display:none;">
+    <div class="client-panel-col" style="flex:1 1 100%;">
+      <label>IDs das contas de anúncio deste cliente</label>
+      <div class="account-config-grid">
+        <div class="field">
+          <label>Google Ads — Customer ID</label>
+          <input type="text" id="cfg-google-customer-id" placeholder="123-456-7890">
+        </div>
+        <div class="field">
+          <label>Meta Ads — Ad Account ID</label>
+          <input type="text" id="cfg-meta-ad-account-id" placeholder="123456789">
+        </div>
+        <div class="field">
+          <label>Meta Ads — Instagram User ID</label>
+          <input type="text" id="cfg-meta-ig-user-id" placeholder="1784140... (opcional)">
+        </div>
+      </div>
+      <div class="client-panel-row" style="margin-top:12px;">
+        <button class="btn-connect" id="account-config-save">Salvar configuração deste cliente</button>
+        <span id="account-config-status"></span>
+      </div>
     </div>
   </div>
 
@@ -534,7 +684,10 @@
       <span id="conn-label-meta">Verificando Meta Ads…</span>
       <button class="btn-connect" id="btn-connect-meta" style="display:none;">Conectar Meta Ads</button>
     </div>
-    <div class="demo-badge" id="demo-badge">Modo demonstração — dados fictícios</div>
+    <div class="connection-bar-right">
+      <div class="demo-badge" id="demo-badge">Modo demonstração — dados fictícios</div>
+      <button class="btn-connect" id="btn-account-config">⚙ Configurar contas deste cliente</button>
+    </div>
   </div>
 
   <!-- ===== FILTERS ===== -->
@@ -1086,16 +1239,110 @@ document.getElementById('btn-pdf').addEventListener('click', async ()=>{
    9. CONEXÃO COM CONTAS REAIS (Google Ads / Meta Ads)
    ========================================================= */
 
-// Identificador do cliente. Pode vir na URL, ex:
-// https://seu-projeto.web.app/?cliente=loja-horizonte
+// Identificador do cliente. Vem da URL, ex:
+// https://painel-trafego-pago.edureckziegel.workers.dev/?cliente=loja-horizonte
 const params = new URLSearchParams(window.location.search);
 const CLIENT_ID = params.get('cliente') || 'default';
+
+let ultimoStatus = null;
+
+// ---- Lista de clientes conhecidos neste navegador ----
+const CLIENT_STORAGE_KEY = 'painel_clientes_conhecidos';
+function getClientesConhecidos(){
+  try{ return JSON.parse(localStorage.getItem(CLIENT_STORAGE_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function salvarClienteConhecido(id){
+  const atuais = getClientesConhecidos().filter(c => c !== id);
+  atuais.unshift(id);
+  try{ localStorage.setItem(CLIENT_STORAGE_KEY, JSON.stringify(atuais.slice(0,20))); }catch(e){}
+}
+function irParaCliente(id){
+  const slug = id.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!slug) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('cliente', slug);
+  window.location.href = url.toString();
+}
+
+salvarClienteConhecido(CLIENT_ID);
+document.getElementById('client-name-display').textContent = CLIENT_ID;
+document.getElementById('client-url-example').textContent =
+  `${window.location.origin}/?cliente=${CLIENT_ID}`;
+
+function renderClientList(){
+  const lista = getClientesConhecidos();
+  document.getElementById('client-list').innerHTML = lista.map(id => `
+    <button class="client-chip ${id===CLIENT_ID?'active':''}" data-client="${id}">${id}</button>
+  `).join('') || '<span style="font-size:12.5px;color:var(--gray);">Nenhum outro cliente ainda neste navegador.</span>';
+
+  document.querySelectorAll('.client-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=> irParaCliente(chip.dataset.client));
+  });
+}
+renderClientList();
+
+// ---- Painel: trocar de cliente ----
+const clientPanel = document.getElementById('client-panel');
+const accountPanel = document.getElementById('account-config-panel');
+
+document.getElementById('client-switch-btn').addEventListener('click', ()=>{
+  accountPanel.style.display = 'none';
+  clientPanel.style.display = clientPanel.style.display === 'none' ? 'flex' : 'none';
+});
+document.getElementById('client-switch-go').addEventListener('click', ()=>{
+  irParaCliente(document.getElementById('client-input').value);
+});
+document.getElementById('client-input').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') irParaCliente(e.target.value);
+});
+
+// ---- Painel: configurar contas do cliente ----
+document.getElementById('btn-account-config').addEventListener('click', ()=>{
+  clientPanel.style.display = 'none';
+  accountPanel.style.display = accountPanel.style.display === 'none' ? 'flex' : 'none';
+  if(ultimoStatus){
+    document.getElementById('cfg-google-customer-id').value = ultimoStatus.googleCustomerId || '';
+    document.getElementById('cfg-meta-ad-account-id').value = ultimoStatus.metaAdAccountId || '';
+    document.getElementById('cfg-meta-ig-user-id').value = ultimoStatus.metaIgUserId || '';
+  }
+});
+
+document.getElementById('account-config-save').addEventListener('click', async ()=>{
+  const btn = document.getElementById('account-config-save');
+  const statusEl = document.getElementById('account-config-status');
+  const payload = {
+    googleCustomerId: document.getElementById('cfg-google-customer-id').value.trim(),
+    metaAdAccountId: document.getElementById('cfg-meta-ad-account-id').value.trim(),
+    metaIgUserId: document.getElementById('cfg-meta-ig-user-id').value.trim(),
+  };
+  btn.disabled = true;
+  statusEl.textContent = 'Salvando...';
+  try{
+    const resp = await fetch(`/api/client-config?clientId=${encodeURIComponent(CLIENT_ID)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if(!resp.ok) throw new Error('Falha ao salvar');
+    statusEl.textContent = '✅ Salvo! Atualizando dados...';
+    const status = await verificarConexoes();
+    await tentarCarregarDadosReais(status);
+    atualizarSeloDemonstracao();
+    render();
+    setTimeout(()=>{ statusEl.textContent = ''; }, 3000);
+  }catch(e){
+    statusEl.textContent = '⚠ Não foi possível salvar. Tente de novo.';
+  }
+  btn.disabled = false;
+});
 
 async function verificarConexoes(){
   try{
     const resp = await fetch(`/api/status?clientId=${encodeURIComponent(CLIENT_ID)}`);
     if(!resp.ok) throw new Error('status indisponível');
     const status = await resp.json();
+    ultimoStatus = status;
     atualizarBarraConexao(status);
     return status;
   }catch(e){
