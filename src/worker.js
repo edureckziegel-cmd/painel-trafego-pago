@@ -270,6 +270,18 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
+  // Tipos de ação que contam como "resultado/conversão". Cobre os objetivos
+  // mais comuns: vendas, cadastros e também conversas iniciadas (campanhas
+  // de mensagem, muito comuns no Meta Ads de pequenos negócios).
+  const TIPOS_CONVERSAO = [
+    "lead", "purchase", "offsite_conversion", "onsite_conversion",
+    "complete_registration", "messaging_conversation_started",
+    "messaging_first_reply",
+  ];
+  function ehConversao(actionType) {
+    return TIPOS_CONVERSAO.some((tipo) => actionType.includes(tipo));
+  }
+
   const byDay = {};
   (data.data || []).forEach((r) => {
     const day = r.date_start;
@@ -277,27 +289,46 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
       invest: 0, impressions: 0, clicks: 0, conversions: 0,
       fbClicks: 0, igClicks: 0, profileVisits: 0, newFollowers: 0,
     };
+
+    // Cliques no link — é essa a métrica que aparece no Gerenciador de
+    // Anúncios como "Cliques no link" (mais relevante do que o campo bruto
+    // "clicks", que também conta curtidas, comentários e outras interações).
+    const acoes = r.actions || [];
+    const linkClicks = acoes
+      .filter((a) => a.action_type === "link_click")
+      .reduce((soma, a) => soma + Number(a.value || 0), 0);
+
     byDay[day].invest += Number(r.spend || 0);
     byDay[day].impressions += Number(r.impressions || 0);
-    byDay[day].clicks += Number(r.clicks || 0);
-    if (r.publisher_platform === "facebook") byDay[day].fbClicks += Number(r.clicks || 0);
-    if (r.publisher_platform === "instagram") byDay[day].igClicks += Number(r.clicks || 0);
+    byDay[day].clicks += linkClicks;
+    if (r.publisher_platform === "facebook") byDay[day].fbClicks += linkClicks;
+    if (r.publisher_platform === "instagram") byDay[day].igClicks += linkClicks;
 
-    const conversoes = (r.actions || []).filter(
-      (a) => a.action_type.includes("lead") || a.action_type.includes("purchase") || a.action_type.includes("offsite_conversion")
-    );
+    const conversoes = acoes.filter((a) => ehConversao(a.action_type));
     byDay[day].conversions += conversoes.reduce((soma, a) => soma + Number(a.value || 0), 0);
   });
 
+  // Visitas ao perfil e novos seguidores — exige a conta comercial do
+  // Instagram vinculada (o campo "Meta Ads — Instagram User ID" na
+  // configuração do cliente). Sem esse ID, ficam zerados.
   if (igUserId) {
     try {
-      const igUrl = `https://graph.facebook.com/${META_API_VERSION}/${igUserId}/insights?metric=profile_views&period=day&since=${start}&until=${end}&access_token=${accessToken}`;
+      const igUrl =
+        `https://graph.facebook.com/${META_API_VERSION}/${igUserId}/insights` +
+        `?metric=profile_views,follower_count&period=day&since=${start}&until=${end}&access_token=${accessToken}`;
       const igRes = await fetch(igUrl);
       const igData = await igRes.json();
-      const metric = (igData.data || []).find((m) => m.name === "profile_views");
-      (metric && metric.values ? metric.values : []).forEach((v) => {
+
+      const metricaVisitas = (igData.data || []).find((m) => m.name === "profile_views");
+      (metricaVisitas && metricaVisitas.values ? metricaVisitas.values : []).forEach((v) => {
         const day = v.end_time ? v.end_time.slice(0, 10) : null;
         if (day && byDay[day]) byDay[day].profileVisits = v.value;
+      });
+
+      const metricaSeguidores = (igData.data || []).find((m) => m.name === "follower_count");
+      (metricaSeguidores && metricaSeguidores.values ? metricaSeguidores.values : []).forEach((v) => {
+        const day = v.end_time ? v.end_time.slice(0, 10) : null;
+        if (day && byDay[day]) byDay[day].newFollowers = v.value;
       });
     } catch (e) {
       // opcional — segue sem travar o resto se essa parte falhar
