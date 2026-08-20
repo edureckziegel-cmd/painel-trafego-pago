@@ -1363,43 +1363,41 @@ function render(){
   }
 
   // ---- Sparklines (mini-gráfico de tendência dentro do card) ----
-  // Curva suavizada (bezier quadrática passando pelos pontos médios, em vez
-  // de linha reta ponto-a-ponto) + área com gradiente por baixo — visual
-  // mais parecido com os sparklines de dashboards modernos, sem o efeito
-  // "zigue-zague" de picos pontiagudos da versão anterior.
+  // Barrinhas verticais (uma por dia) + linha de tendência com pontos por
+  // cima, no estilo mini-gráfico combinado pedido pra substituir a onda.
   function sparklineSVG(values, cor){
     if(!values || values.length < 2) return '';
-    const w = 100, h = 28, pad = 3;
-    const min = Math.min(...values), max = Math.max(...values);
-    const range = (max - min) || 1;
-    const stepX = (w - pad*2) / (values.length - 1);
-    const pts = values.map((v,i)=>({
-      x: pad + i*stepX,
-      y: h - pad - ((v-min)/range) * (h - pad*2),
-    }));
+    const w = 100, h = 30, pad = 3, folgaTopo = 5;
+    const max = Math.max(...values) || 1;
+    const n = values.length;
+    const gap = Math.min(1.6, (w - pad*2) / n * 0.25);
+    const barW = (w - pad*2 - gap*(n-1)) / n;
+    const areaUtil = h - pad*2 - folgaTopo;
 
-    let linha = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    const pts = values.map((v,i)=>{
+      const x = pad + i*(barW+gap);
+      const altura = Math.max((v/max) * areaUtil, 1.5);
+      const yTopoBarra = h - pad - altura;
+      return { x, altura, yTopoBarra, xCentro: x + barW/2 };
+    });
+
+    const barras = pts.map(p =>
+      `<rect x="${p.x.toFixed(1)}" y="${p.yTopoBarra.toFixed(1)}" width="${barW.toFixed(1)}" height="${p.altura.toFixed(1)}" rx="0.8" fill="${cor}" fill-opacity="0.38"/>`
+    ).join('');
+
+    let linha = `M${pts[0].xCentro.toFixed(1)},${(pts[0].yTopoBarra-3).toFixed(1)}`;
     for(let i=1;i<pts.length;i++){
-      const p0 = pts[i-1], p1 = pts[i];
-      const midX = (p0.x+p1.x)/2, midY = (p0.y+p1.y)/2;
-      linha += ` Q${p0.x.toFixed(1)},${p0.y.toFixed(1)} ${midX.toFixed(1)},${midY.toFixed(1)}`;
+      linha += ` L${pts[i].xCentro.toFixed(1)},${(pts[i].yTopoBarra-3).toFixed(1)}`;
     }
-    const ultimo = pts[pts.length-1];
-    linha += ` T${ultimo.x.toFixed(1)},${ultimo.y.toFixed(1)}`;
 
-    const area = `${linha} L${ultimo.x.toFixed(1)},${h} L${pts[0].x.toFixed(1)},${h} Z`;
-    const gradId = 'sparkGrad' + Math.random().toString(36).slice(2,8);
+    const pontos = pts.map(p =>
+      `<circle cx="${p.xCentro.toFixed(1)}" cy="${(p.yTopoBarra-3).toFixed(1)}" r="1.7" fill="${cor}"/>`
+    ).join('');
 
     return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${cor}" stop-opacity="0.32"/>
-          <stop offset="100%" stop-color="${cor}" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d="${area}" fill="url(#${gradId})" stroke="none"/>
-      <path d="${linha}" fill="none" stroke="${cor}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="${ultimo.x.toFixed(1)}" cy="${ultimo.y.toFixed(1)}" r="2" fill="${cor}"/>
+      ${barras}
+      <path d="${linha}" fill="none" stroke="${cor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      ${pontos}
     </svg>`;
   }
 
@@ -2030,6 +2028,9 @@ function exibirAvisoSincronizacao(status, errors){
   }
   if(status.meta && errors.meta){
     mensagens.push(`Meta Ads: não foi possível atualizar os dados (${errors.meta}). Pode ser necessário reconectar a conta.`);
+  }
+  if(status.meta && errors.instagram){
+    mensagens.push(`Instagram (visitas ao perfil/seguidores): ${errors.instagram}`);
   }
 
   definirAviso('sync', mensagens.length ? '⚠ ' + mensagens.join(' ') : null);

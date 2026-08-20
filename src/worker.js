@@ -490,6 +490,11 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   // Visitas ao perfil e novos seguidores — exige a conta comercial do
   // Instagram vinculada (o campo "Meta Ads — Instagram User ID" na
   // configuração do cliente). Sem esse ID, ficam zerados.
+  //
+  // O erro (se houver) é devolvido em vez de só engolido — antes, se essa
+  // parte falhasse (permissão faltando, ID errado, etc.), o painel mostrava
+  // 0 pra sempre sem nenhuma pista do motivo real.
+  let igError = null;
   if (igUserId) {
     try {
       // "metric_type=time_series" é obrigatório desde que o Meta separou os
@@ -506,23 +511,27 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
       const igRes = await fetch(igUrl);
       const igData = await igRes.json();
 
-      const metricaVisitas = (igData.data || []).find((m) => m.name === "profile_views");
-      (metricaVisitas && metricaVisitas.values ? metricaVisitas.values : []).forEach((v) => {
-        const day = v.end_time ? v.end_time.slice(0, 10) : null;
-        if (day && byDay[day]) byDay[day].profileVisits = v.value;
-      });
+      if (igData.error) {
+        igError = igData.error.message;
+      } else {
+        const metricaVisitas = (igData.data || []).find((m) => m.name === "profile_views");
+        (metricaVisitas && metricaVisitas.values ? metricaVisitas.values : []).forEach((v) => {
+          const day = v.end_time ? v.end_time.slice(0, 10) : null;
+          if (day && byDay[day]) byDay[day].profileVisits = v.value;
+        });
 
-      const metricaSeguidores = (igData.data || []).find((m) => m.name === "follower_count");
-      (metricaSeguidores && metricaSeguidores.values ? metricaSeguidores.values : []).forEach((v) => {
-        const day = v.end_time ? v.end_time.slice(0, 10) : null;
-        if (day && byDay[day]) byDay[day].newFollowers = v.value;
-      });
+        const metricaSeguidores = (igData.data || []).find((m) => m.name === "follower_count");
+        (metricaSeguidores && metricaSeguidores.values ? metricaSeguidores.values : []).forEach((v) => {
+          const day = v.end_time ? v.end_time.slice(0, 10) : null;
+          if (day && byDay[day]) byDay[day].newFollowers = v.value;
+        });
+      }
     } catch (e) {
-      // opcional — segue sem travar o resto se essa parte falhar
+      igError = e.message;
     }
   }
 
-  return byDay;
+  return { byDay, igError };
 }
 
 /* ---------- Campanhas individuais (dados reais, para a tabela) ---------- */
@@ -683,9 +692,9 @@ async function apiMetrics(url, env) {
   // continua funcionando normalmente. Antes, um erro de qualquer uma das
   // duas derrubava a chamada inteira e o painel caía pro modo demonstração
   // sem avisar que os dados reais pararam de carregar.
-  const errors = { google: null, meta: null };
+  const errors = { google: null, meta: null, instagram: null };
 
-  const [googleByDay, metaByDay, googleCampaigns, metaCampaigns] = await Promise.all([
+  const [googleByDay, metaResultado, googleCampaigns, metaCampaigns] = await Promise.all([
     data.google && data.google.refresh_token
       ? fetchGoogleAdsData(env, data.google.refresh_token, data.googleCustomerId, start, end)
           .catch((e) => { errors.google = e.message; return null; })
@@ -701,6 +710,9 @@ async function apiMetrics(url, env) {
       ? fetchMetaCampaigns(data.meta.access_token, data.metaAdAccountId, start, end).catch(() => [])
       : [],
   ]);
+
+  const metaByDay = metaResultado ? metaResultado.byDay : null;
+  if (metaResultado && metaResultado.igError) errors.instagram = metaResultado.igError;
 
   const campaigns = [...googleCampaigns, ...metaCampaigns].sort((a, b) => b.invest - a.invest);
 
