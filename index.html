@@ -116,6 +116,41 @@
     color:#fff;
   }
 
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+
+  .theme-toggle{
+    display:flex;
+    align-items:center;
+    gap:2px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:999px;
+    padding:3px;
+  }
+  .theme-btn{
+    width:30px; height:30px;
+    border-radius:50%;
+    border:none;
+    background:transparent;
+    font-size:14px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background .15s ease, transform .15s ease;
+    opacity:.55;
+  }
+  .theme-btn:hover{ transform:translateY(-1px); opacity:.85; }
+  .theme-btn.active{
+    background:linear-gradient(135deg, var(--teal), var(--navy));
+    opacity:1;
+    box-shadow:0 4px 10px rgba(58,152,174,0.4);
+  }
+
   .client-meta{
     text-align:right;
   }
@@ -208,6 +243,22 @@
     border-radius:20px;
   }
   .demo-badge.hidden{display:none;}
+
+  .sync-warning{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    font-weight:600;
+    color:#8a3b1f;
+    background:#fdeae0;
+    border:1px solid #f3c4a8;
+    padding:10px 16px;
+    border-radius:10px;
+    margin:0 24px 16px;
+  }
+  .sync-warning.hidden{display:none;}
+  body.theme-dark .sync-warning{ background:rgba(201,90,44,0.16); color:#ffb98a; border-color:rgba(201,90,44,0.35); }
 
   /* ===== Client switch / account config panels ===== */
   .client-panel{
@@ -735,6 +786,130 @@
   }
   #top-loading-bar.active{ opacity:1; width:75%; }
   #top-loading-bar.done{ width:100%; opacity:0; }
+/* =========================================================
+     TEMA ESCURO — pegada "vidro" sobre fundo quase preto,
+     inspirado nas referências (glow teal, cards translúcidos)
+     ========================================================= */body.theme-dark{
+    background:
+      radial-gradient(900px circle at 12% -12%, rgba(58,152,174,0.14), transparent 55%),
+      radial-gradient(760px circle at 92% 8%, rgba(58,152,174,0.09), transparent 50%),
+      radial-gradient(700px circle at 50% 100%, rgba(58,152,174,0.06), transparent 60%),
+      #0a0e10;
+    color:#c3cdd1;
+  }
+
+body.theme-dark .topbar{
+    background:
+      radial-gradient(480px circle at 88% -30%, rgba(58,152,174,0.55), transparent 60%),
+      radial-gradient(420px circle at 6% 130%, rgba(58,152,174,0.22), transparent 60%),
+      linear-gradient(135deg, #0b0f11 0%, #101a1f 100%);
+    border:1px solid rgba(255,255,255,0.06);
+    box-shadow:0 12px 32px rgba(0,0,0,0.5);
+  }
+
+body.theme-dark .kpi-card, body.theme-dark .panel, body.theme-dark .filters, body.theme-dark .connection-bar, body.theme-dark .client-panel{
+    background:linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 12px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+body.theme-dark .kpi-card:hover{
+    box-shadow:0 16px 36px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    border-color:rgba(58,152,174,0.35);
+  }
+
+body.theme-dark .kpi-grid::before{
+    background:
+      radial-gradient(360px circle at 12% 18%, rgba(58,152,174,0.20), transparent 62%),
+      radial-gradient(340px circle at 92% 82%, rgba(58,152,174,0.10), transparent 60%);
+  }
+
+body.theme-dark .kpi-card .value, body.theme-dark .brand-text h1, body.theme-dark .client-switch strong, body.theme-dark .section-head h2, body.theme-dark .pill-text .n, body.theme-dark thead th{
+    color:#f2f8f9;
+  }
+
+body.theme-dark .kpi-card .label{ color:#93a8ad; border-bottom-color:rgba(255,255,255,0.18); }
+
+body.theme-dark .kpi-card .label:hover::after{ background:#0d1418; border:1px solid rgba(255,255,255,0.1); color:#eef4f6; }
+
+body.theme-dark .kpi-card .label:hover::before{ border-top-color:#0d1418; }
+
+body.theme-dark .kpi-icon{
+    background:linear-gradient(135deg, rgba(58,152,174,0.32), rgba(58,152,174,0.10));
+    color:#8fdcee;
+  }
+
+body.theme-dark .kpi-card.navy .kpi-icon{
+    background:linear-gradient(135deg, rgba(58,152,174,0.42), rgba(58,152,174,0.14));
+    color:#a6e6f5;
+  }
+
+body.theme-dark .brand-text .eyebrow, body.theme-dark .client-eyebrow{ color:#7fd0e6; }
+
+body.theme-dark .client-switch-icon{ color:#7fd0e6; }
+
+body.theme-dark .section-head .sub{ color:#7fb8c4; }
+
+body.theme-dark .section-tag{ background:rgba(58,152,174,0.16); color:#8fdcee; }
+
+body.theme-dark .demo-badge{ background:rgba(201,138,44,0.16); color:#ffcf8a; }
+
+body.theme-dark .conn-dot{ background:#3a4448; }
+
+body.theme-dark .field label{ color:#d7e2e5; }
+
+body.theme-dark .field select, body.theme-dark .field input[type=date]{
+    background:rgba(255,255,255,0.045);
+    border-color:rgba(255,255,255,0.14);
+    color:#e7eef0;
+  }
+
+body.theme-dark .field select:focus, body.theme-dark .field input:focus{ outline-color:#3a98ae; }
+
+body.theme-dark .chip{ background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.14); color:#cfe0e4; }
+
+body.theme-dark .chip:hover{ background:rgba(58,152,174,0.16); }
+
+body.theme-dark .btn-connect{ border-color:rgba(58,152,174,0.55); background:rgba(255,255,255,0.03); color:#8fdcee; }
+
+body.theme-dark .btn-connect:hover{ background:rgba(58,152,174,0.18); }
+
+body.theme-dark table{ color:#c3cdd1; }
+
+body.theme-dark thead th{ background:rgba(58,152,174,0.10); border-bottom-color:rgba(58,152,174,0.30); }
+
+body.theme-dark tbody td{ border-bottom-color:rgba(255,255,255,0.07); color:#c3cdd1; }
+
+body.theme-dark tbody tr:hover{ background:rgba(58,152,174,0.10); }
+
+body.theme-dark .tag.meta{ background:rgba(59,89,152,0.22); color:#9db3e0; }
+
+body.theme-dark .tag.google{ background:rgba(197,71,63,0.22); color:#f0a89f; }
+
+body.theme-dark .platform-pill.fb{
+    background:linear-gradient(135deg, rgba(59,89,152,0.22), rgba(59,89,152,0.06));
+    border-color:rgba(59,89,152,0.3);
+  }
+
+body.theme-dark .platform-pill.ig{
+    background:linear-gradient(135deg, rgba(221,42,123,0.20), rgba(221,42,123,0.06));
+    border-color:rgba(221,42,123,0.3);
+  }
+
+body.theme-dark .pill-text .l{ color:#93a8ad; }
+
+body.theme-dark .analysis-panel{
+    background:
+      radial-gradient(420px circle at 92% -10%, rgba(58,152,174,0.40), transparent 60%),
+      radial-gradient(380px circle at 4% 115%, rgba(58,152,174,0.18), transparent 60%),
+      linear-gradient(160deg, #101a1f 0%, #0c1519 100%);
+    border:1px solid rgba(255,255,255,0.06);
+  }
+
+body.theme-dark footer{ color:#5f7075; border-top-color:rgba(255,255,255,0.08); }
+
+body.theme-dark #top-loading-bar{ background:linear-gradient(90deg, var(--teal), #7fd0e6); }
+
 </style>
 </head>
 <body>
@@ -751,12 +926,18 @@
         <h1>Painel de Tráfego Pago</h1>
       </div>
     </div>
-    <div class="client-meta">
-      <div class="client-eyebrow">Cliente</div>
-      <button class="client-switch" id="client-switch-btn">
-        <strong id="client-name-display">Loja Horizonte</strong>
-        <span class="client-switch-icon">▾</span>
-      </button>
+    <div class="topbar-right">
+      <div class="theme-toggle" id="theme-toggle">
+        <button class="theme-btn" data-theme="light" title="Tema claro" aria-label="Tema claro">☀️</button>
+        <button class="theme-btn" data-theme="dark" title="Tema escuro" aria-label="Tema escuro">🌙</button>
+      </div>
+      <div class="client-meta">
+        <div class="client-eyebrow">Cliente</div>
+        <button class="client-switch" id="client-switch-btn">
+          <strong id="client-name-display">Loja Horizonte</strong>
+          <span class="client-switch-icon">▾</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -821,6 +1002,8 @@
       <button class="btn-connect" id="btn-account-config">⚙ Configurar contas deste cliente</button>
     </div>
   </div>
+
+  <div class="sync-warning hidden" id="sync-warning"></div>
 
   <!-- ===== FILTERS ===== -->
   <div class="filters">
@@ -1017,6 +1200,7 @@ function converterDadosReais(googleByDay, metaByDay){
 
 let dailyData = gerarDadosFicticios();
 let modoDemonstracao = true;
+let campanhasReais = null;
 
 // Receita fictícia associada às conversões (ticket médio ~ R$145)
 const TICKET_MEDIO = 145;
@@ -1063,6 +1247,14 @@ const fmtBRL = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',ma
 const fmtBRL2 = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:2});
 const fmtInt = v => Math.round(v).toLocaleString('pt-BR');
 const fmtPct = v => (v*100).toLocaleString('pt-BR',{maximumFractionDigits:2}) + '%';
+
+// Nomes de campanha vêm da API do Google/Meta e são inseridos via innerHTML
+// na tabela — sem escapar, um nome de campanha com "<" ou ">" quebraria a
+// página (ou pior, injetaria HTML/script se algum dia outra pessoa além de
+// você tiver acesso pra criar campanhas nas contas conectadas).
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+  '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+}[c]));
 
 let charts = {};
 
@@ -1183,14 +1375,14 @@ function render(){
 
   // ---- KPI cards principais ----
   const kpis = [
-    {label:'Investimento total', value:fmtBRL(totalInvest), navy:true, delta:deltaHtml(deltaInvest), icon:'💰', spark:sparklineSVG(investSerie,'#3a98ae')},
+    {label:'Investimento total', value:fmtBRL(totalInvest), navy:true, delta:deltaHtml(deltaInvest), icon:'💰', spark:sparklineSVG(investSerie, isDark()?'#7fd0e6':'#3a98ae')},
     {label:'Impressões', value:fmtInt(totalImpr), icon:'👁'},
-    {label:'Cliques', value:fmtInt(totalClicks), delta:deltaHtml(deltaClicks), icon:'🖱', spark:sparklineSVG(clicksSerie,'#3a98ae')},
+    {label:'Cliques', value:fmtInt(totalClicks), delta:deltaHtml(deltaClicks), icon:'🖱', spark:sparklineSVG(clicksSerie, isDark()?'#7fd0e6':'#3a98ae')},
     {label:'CTR médio', value:fmtPct(ctr), icon:'📈'},
     {label:'CPC médio', value:fmtBRL2(cpc), icon:'💳'},
-    {label:'Resultados (conversões)', value:fmtInt(totalConv), navy:true, delta:deltaHtml(deltaConv), icon:'🎯', spark:sparklineSVG(convSerie,'#264a60')},
+    {label:'Resultados (conversões)', value:fmtInt(totalConv), navy:true, delta:deltaHtml(deltaConv), icon:'🎯', spark:sparklineSVG(convSerie, isDark()?'#a6e6f5':'#264a60')},
     {label:'Custo por resultado', value:fmtBRL2(cpa), icon:'🧾'},
-    {label:'ROAS (retorno estimado)', value:roas.toFixed(2)+'x', navy:true, delta:deltaHtml(deltaRoas), icon:'🚀', spark:sparklineSVG(roasSerie,'#264a60')},
+    {label:'ROAS (retorno estimado)', value:roas.toFixed(2)+'x', navy:true, delta:deltaHtml(deltaRoas), icon:'🚀', spark:sparklineSVG(roasSerie, isDark()?'#a6e6f5':'#264a60')},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
     <div class="kpi-card ${k.navy?'navy':''}">
@@ -1238,7 +1430,18 @@ function destroyChart(key){ if(charts[key]){ charts[key].destroy(); } }
 
 const CHART_FONT = { family:"'Aileron', sans-serif", size:12 };
 
+function isDark(){ return document.body.classList.contains('theme-dark'); }
+
+function coresDoGrafico(){
+  return isDark()
+    ? { titulo:'#eef4f6', grade:'rgba(255,255,255,0.08)', googleLine:'#8fb4c9', googleFill:'rgba(143,180,201,0.14)', googleSolid:'#8fb4c9', textoGeral:'#c3cdd1' }
+    : { titulo:'#264a60', grade:'#eef2f3', googleLine:'#264a60', googleFill:'rgba(38,74,96,0.08)', googleSolid:'#264a60', textoGeral:'#4e4e4e' };
+}
+
 function renderCharts(days, agg, showGoogle, showMeta){
+  const cores = coresDoGrafico();
+  if(typeof Chart !== 'undefined'){ Chart.defaults.color = cores.textoGeral; }
+
   // --- Investimento diário ---
   destroyChart('daily');
   const ctxDaily = document.getElementById('chart-daily').getContext('2d');
@@ -1247,7 +1450,7 @@ function renderCharts(days, agg, showGoogle, showMeta){
   if(showGoogle) datasets.push({
     label:'Investimento Google Ads (R$)',
     data: days.map(d=>d.google.invest),
-    borderColor:'#264a60', backgroundColor:'rgba(38,74,96,0.08)',
+    borderColor:cores.googleLine, backgroundColor:cores.googleFill,
     tension:.35, fill:true, pointRadius:0, borderWidth:2
   });
   if(showMeta) datasets.push({
@@ -1262,11 +1465,11 @@ function renderCharts(days, agg, showGoogle, showMeta){
     options:{
       plugins:{
         legend:{position:'top', labels:{font:CHART_FONT, boxWidth:12}},
-        title:{display:true, text:'Investimento diário por plataforma', font:{family:"'League Spartan'", size:14, weight:'700'}, color:'#264a60', align:'start', padding:{bottom:14}}
+        title:{display:true, text:'Investimento diário por plataforma', font:{family:"'League Spartan'", size:14, weight:'700'}, color:cores.titulo, align:'start', padding:{bottom:14}}
       },
       scales:{
         x:{title:{display:true,text:'Dia do mês', font:CHART_FONT}, ticks:{font:CHART_FONT}, grid:{display:false}},
-        y:{ticks:{font:CHART_FONT, callback:v=>'R$'+v}, grid:{color:'#eef2f3'}}
+        y:{ticks:{font:CHART_FONT, callback:v=>'R$'+v}, grid:{color:cores.grade}}
       },
       maintainAspectRatio:false
     }
@@ -1279,7 +1482,7 @@ function renderCharts(days, agg, showGoogle, showMeta){
   const splitLabels = [];
   const splitData = [];
   const splitColors = [];
-  if(showGoogle){ splitLabels.push('Google Ads'); splitData.push(agg.google.invest); splitColors.push('#264a60'); }
+  if(showGoogle){ splitLabels.push('Google Ads'); splitData.push(agg.google.invest); splitColors.push(cores.googleSolid); }
   if(showMeta){ splitLabels.push('Meta Ads'); splitData.push(agg.meta.invest); splitColors.push('#3a98ae'); }
   charts.split = new Chart(ctxSplit,{
     type:'doughnut',
@@ -1287,7 +1490,7 @@ function renderCharts(days, agg, showGoogle, showMeta){
     options:{
       plugins:{
         legend:{position:'bottom', labels:{font:CHART_FONT, boxWidth:12}},
-        title:{display:true, text:'Distribuição do investimento', font:{family:"'League Spartan'", size:14, weight:'700'}, color:'#264a60', align:'start', padding:{bottom:14}}
+        title:{display:true, text:'Distribuição do investimento', font:{family:"'League Spartan'", size:14, weight:'700'}, color:cores.titulo, align:'start', padding:{bottom:14}}
       },
       cutout:'62%',
       maintainAspectRatio:false
@@ -1311,9 +1514,9 @@ function renderCharts(days, agg, showGoogle, showMeta){
       indexAxis:'y',
       plugins:{
         legend:{position:'top', labels:{font:CHART_FONT, boxWidth:12}},
-        title:{display:true, text:'Meta Ads: Cliques por Facebook e Instagram', font:{family:"'League Spartan'", size:14, weight:'700'}, color:'#264a60', align:'start', padding:{bottom:14}}
+        title:{display:true, text:'Meta Ads: Cliques por Facebook e Instagram', font:{family:"'League Spartan'", size:14, weight:'700'}, color:cores.titulo, align:'start', padding:{bottom:14}}
       },
-      scales:{ x:{ticks:{font:CHART_FONT}, grid:{color:'#eef2f3'}}, y:{ticks:{font:CHART_FONT}, grid:{display:false}} },
+      scales:{ x:{ticks:{font:CHART_FONT}, grid:{color:cores.grade}}, y:{ticks:{font:CHART_FONT}, grid:{display:false}} },
       maintainAspectRatio:false
     }
   });
@@ -1324,6 +1527,43 @@ function renderCharts(days, agg, showGoogle, showMeta){
    5. TABELA DE CAMPANHAS (escala proporcional ao período)
    ========================================================= */
 function renderCampaignTable(platform, numDays){
+  // Com dados reais conectados, usa as campanhas de verdade vindas da API
+  // (sem inventar nada). Só recorre à simulação quando está em modo
+  // demonstração, como exemplo de como a tabela fica.
+  if(!modoDemonstracao && Array.isArray(campanhasReais)){
+    const linhasReais = campanhasReais
+      .filter(c => platform==='all' || c.platform===platform)
+      .map(c=>{
+        const ctr = c.impressions ? c.clicks/c.impressions : 0;
+        const cpc = c.clicks ? c.invest/c.clicks : 0;
+        const custoResultado = c.results ? c.invest/c.results : 0;
+        return {...c, ctr, cpc, custoResultado};
+      })
+      .sort((a,b)=>b.invest-a.invest);
+
+    if(linhasReais.length === 0){
+      document.getElementById('campaign-table-body').innerHTML = `
+        <tr><td colspan="8" style="text-align:center; color:var(--gray); padding:20px;">
+          Nenhuma campanha com dados nesse período/plataforma.
+        </td></tr>`;
+      return;
+    }
+
+    document.getElementById('campaign-table-body').innerHTML = linhasReais.map(r=>`
+      <tr>
+        <td>${escapeHtml(r.name)}</td>
+        <td><span class="tag ${r.platform==='meta'?'meta':'google'}">${r.platform==='meta'?'Meta Ads':'Google Ads'}</span></td>
+        <td>${fmtBRL(r.invest)}</td>
+        <td>${fmtInt(r.clicks)}</td>
+        <td>${fmtPct(r.ctr)}</td>
+        <td>${fmtBRL2(r.cpc)}</td>
+        <td>${fmtInt(r.results)}</td>
+        <td>${fmtBRL2(r.custoResultado)}</td>
+      </tr>`).join('');
+    return;
+  }
+
+  // ---- Modo demonstração: simulação proporcional (dados fictícios) ----
   const factor = numDays / (dailyData.length || 31);
   const rows = campaignsBase
     .filter(c => platform==='all' || c.platform===platform)
@@ -1342,7 +1582,7 @@ function renderCampaignTable(platform, numDays){
 
   document.getElementById('campaign-table-body').innerHTML = rows.map(r=>`
     <tr>
-      <td>${r.name}</td>
+      <td>${escapeHtml(r.name)}</td>
       <td><span class="tag ${r.platform==='meta'?'meta':'google'}">${r.platform==='meta'?'Meta Ads':'Google Ads'}</span></td>
       <td>${fmtBRL(r.invest)}</td>
       <td>${fmtInt(r.clicks)}</td>
@@ -1427,34 +1667,73 @@ document.getElementById('btn-pdf').addEventListener('click', async ()=>{
   btn.disabled = true;
   btn.textContent = 'Gerando PDF...';
 
-  const target = document.getElementById('capture-area');
-  const canvas = await html2canvas(target, {scale:2, backgroundColor:'#f4f7f8', useCORS:true});
-  const imgData = canvas.toDataURL('image/png');
+  // Esconde tudo que é "controle" (filtros, botões, seletor de cliente) —
+  // isso não deve aparecer no relatório que vai pro cliente.
+  const seletoresParaEsconder = ['.connection-bar', '.filters', '#client-panel', '#account-config-panel', '.theme-toggle'];
+  const paraRestaurar = [];
+  seletoresParaEsconder.forEach(sel=>{
+    document.querySelectorAll(sel).forEach(el=>{
+      if(getComputedStyle(el).display !== 'none'){
+        paraRestaurar.push({el, display: el.style.display});
+        el.style.display = 'none';
+      }
+    });
+  });
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p','mm','a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = canvas.height * imgWidth / canvas.width;
+  // O PDF sai sempre no tema claro, independente do tema ativo na tela —
+  // no tema escuro ele gastaria muito mais tinta se o cliente imprimir, e
+  // o relatório fica mais "profissional" sempre com o mesmo visual.
+  const eraTemaEscuro = document.body.classList.contains('theme-dark');
+  if(eraTemaEscuro) aplicarTema('light', true);
 
-  let heightLeft = imgHeight;
-  let position = 0;
+  // Dá um instante para o navegador re-calcular o layout (e redesenhar os
+  // gráficos, se o tema mudou) antes de capturar
+  await new Promise(resolve => setTimeout(resolve, 60));
 
-  pdf.addImage(imgData,'PNG',0,position,imgWidth,imgHeight);
-  heightLeft -= pageHeight;
+  try{
+    const capture = document.getElementById('capture-area');
+    // Cada "bloco" (título de seção, grade de KPIs, gráfico, tabela, etc.)
+    // é capturado e posicionado no PDF como uma unidade só — assim a quebra
+    // de página só acontece ENTRE blocos, nunca cortando um card, gráfico
+    // ou linha de tabela ao meio.
+    const blocos = Array.from(capture.children).filter(el => {
+      const rect = el.getBoundingClientRect();
+      return getComputedStyle(el).display !== 'none' && rect.height > 0;
+    });
 
-  while(heightLeft > 0){
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData,'PNG',0,position,imgWidth,imgHeight);
-    heightLeft -= pageHeight;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    let cursorY = 0;
+    let primeiro = true;
+
+    for(const bloco of blocos){
+      const canvas = await html2canvas(bloco, {scale:2, backgroundColor:'#f4f7f8', useCORS:true});
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = pageWidth;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+
+      // Se esse bloco não cabe mais no espaço restante da página atual,
+      // começa uma página nova (e só aí desenha o bloco).
+      if(!primeiro && (cursorY + imgHeight > pageHeight)){
+        pdf.addPage();
+        cursorY = 0;
+      }
+
+      pdf.addImage(imgData, 'PNG', 0, cursorY, imgWidth, imgHeight);
+      cursorY += imgHeight;
+      primeiro = false;
+    }
+
+    pdf.save(`relatorio-trafego-pago-${CLIENT_ID}.pdf`);
+  } finally {
+    paraRestaurar.forEach(({el, display}) => { el.style.display = display; });
+    if(eraTemaEscuro) aplicarTema('dark', true);
+    btn.disabled = false;
+    btn.textContent = original;
   }
-
-  pdf.save(`relatorio-trafego-pago-${CLIENT_ID}.pdf`);
-
-  btn.disabled = false;
-  btn.textContent = original;
 });
 
 /* =========================================================
@@ -1493,17 +1772,35 @@ document.getElementById('footer-client-name').textContent = `× ${CLIENT_ID}`;
 document.getElementById('client-url-example').textContent =
   `${window.location.origin}/?cliente=${CLIENT_ID}`;
 
-function renderClientList(){
-  const lista = getClientesConhecidos();
+function renderClientList(lista){
   document.getElementById('client-list').innerHTML = lista.map(id => `
-    <button class="client-chip ${id===CLIENT_ID?'active':''}" data-client="${id}">${id}</button>
-  `).join('') || '<span style="font-size:12.5px;color:var(--gray);">Nenhum outro cliente ainda neste navegador.</span>';
+    <button class="client-chip ${id===CLIENT_ID?'active':''}" data-client="${escapeHtml(id)}">${escapeHtml(id)}</button>
+  `).join('') || '<span style="font-size:12.5px;color:var(--gray);">Nenhum outro cliente ainda.</span>';
 
   document.querySelectorAll('.client-chip').forEach(chip=>{
     chip.addEventListener('click', ()=> irParaCliente(chip.dataset.client));
   });
 }
-renderClientList();
+renderClientList(getClientesConhecidos());
+
+// A lista central (guardada no KV pelo backend) é a fonte de verdade —
+// funciona em qualquer navegador/computador. A do localStorage é só um
+// fallback rápido enquanto essa chamada não volta, e cobre o caso do
+// backend estar fora do ar.
+async function carregarListaClientesCentral(){
+  try{
+    const resp = await fetch('/api/clients');
+    if(!resp.ok) return;
+    const { clients } = await resp.json();
+    if(Array.isArray(clients) && clients.length){
+      const combinada = Array.from(new Set([...clients, ...getClientesConhecidos()])).sort();
+      renderClientList(combinada);
+    }
+  }catch(e){
+    // backend indisponível: mantém a lista local mesmo
+  }
+}
+carregarListaClientesCentral();
 
 // ---- Painel: trocar de cliente ----
 const clientPanel = document.getElementById('client-panel');
@@ -1569,12 +1866,39 @@ async function verificarConexoes(){
     const status = await resp.json();
     ultimoStatus = status;
     atualizarBarraConexao(status);
+    definirAviso('metaToken', textoAvisoTokenMeta(status.metaToken));
     return status;
   }catch(e){
     // Backend ainda não publicado ou indisponível: segue em modo demonstração
     atualizarBarraConexao({ google:false, meta:false, indisponivel:true });
     return { google:false, meta:false };
   }
+}
+
+// O painel pode ter mais de um aviso ativo ao mesmo tempo (ex: token do
+// Meta expirando + erro de sincronização do Google). Cada fonte de aviso
+// escreve na sua própria chave, e a barra mostra todos os que estiverem
+// preenchidos — assim um não apaga o outro.
+const avisosAtivos = { metaToken: null, sync: null };
+
+function definirAviso(chave, texto){
+  avisosAtivos[chave] = texto || null;
+  const el = document.getElementById('sync-warning');
+  const textos = Object.values(avisosAtivos).filter(Boolean);
+  if(textos.length === 0){ el.classList.add('hidden'); return; }
+  el.textContent = textos.join(' ');
+  el.classList.remove('hidden');
+}
+
+// Avisa com antecedência quando o token do Meta Ads está perto de expirar
+// (dura ~60 dias e não se renova sozinho), pra reconectar antes do
+// relatório do cliente parar de atualizar sem explicação.
+function textoAvisoTokenMeta(metaToken){
+  if(!metaToken || !metaToken.expiringSoon) return null;
+  const dias = metaToken.daysLeft;
+  return dias > 0
+    ? `⚠ A conexão com o Meta Ads expira em ${dias} dia${dias===1?'':'s'}. Reconecte a conta em breve pra não perder a atualização dos relatórios.`
+    : `⚠ A conexão com o Meta Ads expirou. Reconecte a conta pra voltar a atualizar os relatórios.`;
 }
 
 function atualizarBarraConexao(status){
@@ -1610,11 +1934,15 @@ async function tentarCarregarDadosReais(status){
     const resp = await fetch(`/api/metrics?clientId=${encodeURIComponent(CLIENT_ID)}&start=${start}&end=${end}`);
     if(!resp.ok) throw new Error('Falha ao buscar métricas');
     const json = await resp.json();
+
+    exibirAvisoSincronizacao(status, json.errors);
+
     const convertido = converterDadosReais(json.google, json.meta);
     if(convertido.length === 0) return false;
 
     dailyData = convertido;
     modoDemonstracao = false;
+    campanhasReais = Array.isArray(json.campaigns) ? json.campaigns : [];
 
     const datas = convertido.map(d=>d.date);
     const min = new Date(Math.min(...datas));
@@ -1630,8 +1958,29 @@ async function tentarCarregarDadosReais(status){
     return true;
   }catch(e){
     console.warn('Não foi possível carregar dados reais, mantendo demonstração:', e.message);
+    if(status.google || status.meta){
+      exibirAvisoSincronizacao(status, { google: status.google ? e.message : null, meta: status.meta ? e.message : null });
+    }
     return false;
   }
+}
+
+// Mostra um aviso visível quando uma plataforma conectada falha ao buscar
+// dados (token expirado, conta desconfigurada, erro da API) — em vez de
+// deixar o painel cair pro modo demonstração sem explicar por quê, o que
+// poderia levar a mandar um relatório fictício pro cliente sem perceber.
+function exibirAvisoSincronizacao(status, errors){
+  if(!errors){ definirAviso('sync', null); return; }
+
+  const mensagens = [];
+  if(status.google && errors.google){
+    mensagens.push(`Google Ads: não foi possível atualizar os dados (${errors.google}). Pode ser necessário reconectar a conta.`);
+  }
+  if(status.meta && errors.meta){
+    mensagens.push(`Meta Ads: não foi possível atualizar os dados (${errors.meta}). Pode ser necessário reconectar a conta.`);
+  }
+
+  definirAviso('sync', mensagens.length ? '⚠ ' + mensagens.join(' ') : null);
 }
 
 function atualizarSeloDemonstracao(){
@@ -1658,9 +2007,35 @@ function esconderCarregando(){
 }
 
 /* =========================================================
+   10.5 TEMA CLARO / ESCURO
+   ========================================================= */
+const TEMA_STORAGE_KEY = 'painel_tema';
+
+function aplicarTema(tema, redesenhar){
+  document.body.classList.toggle('theme-dark', tema === 'dark');
+  document.querySelectorAll('.theme-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.theme === tema);
+  });
+  try{ localStorage.setItem(TEMA_STORAGE_KEY, tema); }catch(e){}
+  // Os gráficos (Chart.js) têm cores fixas desenhadas no canvas — precisam
+  // ser refeitos pra usar as cores certas do novo tema.
+  if(redesenhar) render();
+}
+
+document.querySelectorAll('.theme-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> aplicarTema(btn.dataset.theme, true));
+});
+
+/* =========================================================
    11. INIT
    ========================================================= */
 (async function init(){
+  // Aplica o tema salvo (ou escuro, como padrão) antes de tudo, sem
+  // redesenhar gráficos ainda — eles só existem depois do primeiro render().
+  let temaSalvo = 'dark';
+  try{ temaSalvo = localStorage.getItem(TEMA_STORAGE_KEY) || 'dark'; }catch(e){}
+  aplicarTema(temaSalvo, false);
+
   mostrarCarregando();
   const status = await verificarConexoes();
   await tentarCarregarDadosReais(status);

@@ -9,6 +9,39 @@
 const META_API_VERSION = "v21.0";
 const GOOGLE_ADS_API_VERSION = "v17";
 
+// Tipos de ação do Meta que podem representar o "resultado" de uma campanha.
+// Em ORDEM DE PRIORIDADE: pegamos o PRIMEIRO que existir nas ações da
+// campanha/período, em vez de somar todos — porque várias dessas entradas
+// podem coexistir para a MESMA conversão (ex: "conversa iniciada" e
+// "primeira resposta" às vezes aparecem juntas), e somar todas infla o
+// número de resultados muito além do que o Gerenciador de Anúncios mostra.
+const PRIORIDADE_RESULTADO = [
+  "onsite_conversion.messaging_conversation_started_7d",
+  "onsite_conversion.purchase",
+  "omni_purchase",
+  "offsite_conversion.fb_pixel_purchase",
+  "purchase",
+  "lead",
+  "onsite_conversion.lead_grouped",
+  "complete_registration",
+  "onsite_conversion.total_messaging_connection",
+  "link_click",
+];
+
+function calcularResultado(actions) {
+  const lista = actions || [];
+  for (const tipo of PRIORIDADE_RESULTADO) {
+    const acao = lista.find((a) => a.action_type === tipo);
+    if (acao) return Number(acao.value || 0);
+  }
+  return 0;
+}
+
+function calcularLinkClicks(actions) {
+  const acao = (actions || []).find((a) => a.action_type === "link_click");
+  return acao ? Number(acao.value || 0) : 0;
+}
+
 /* ---------- Segurança ---------- */
 
 // Impede que o clientId vindo da URL seja usado para "poluir" ou manipular
@@ -117,9 +150,18 @@ function paginaSucesso(nome) {
   </body></html>`;
 }
 
-/* ======================================================================
-   GOOGLE ADS — OAuth
-   ====================================================================== */
+/* ---------- Google Ads ---------- */
+
+// O endpoint googleAds:searchStream pode devolver a resposta dividida em
+// vários blocos (um array com vários objetos, cada um com seu próprio
+// "results") quando o volume de linhas é grande — não é garantido que tudo
+// venha em data[0]. Juntamos os resultados de todos os blocos aqui, senão
+// contas com muitas campanhas/dias perdem linhas silenciosamente.
+function extrairLinhasGoogleAds(data) {
+  if (!Array.isArray(data)) return [];
+  return data.flatMap((bloco) => (bloco && bloco.results) || []);
+}
+
 async function authGoogleStart(url, env) {
   const clientId = url.searchParams.get("clientId") || "default";
   const redirectUri = `${env.APP_BASE_URL}/api/auth/google/callback`;
@@ -153,7 +195,6 @@ async function authGoogleCallback(url, env) {
     }),
   });
   const tokenData = await tokenRes.json();
-
   if (tokenData.error) {
     return new Response("Erro ao conectar Google Ads: " + (tokenData.error_description || tokenData.error), { status: 500 });
   }
@@ -162,9 +203,7 @@ async function authGoogleCallback(url, env) {
     google: { refresh_token: tokenData.refresh_token, connected_at: Date.now() },
   });
 
-  return new Response(paginaSucesso("Google Ads"), {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  return new Response(paginaSucesso("Google Ads"), { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
 async function getGoogleAccessToken(env, refreshToken) {
@@ -209,7 +248,7 @@ async function fetchGoogleAdsData(env, refreshToken, customerId, start, end) {
   if (data.error) throw new Error(JSON.stringify(data.error));
 
   const byDay = {};
-  const results = (data[0] && data[0].results) || [];
+  const results = extrairLinhasGoogleAds(data);
   results.forEach((r) => {
     const day = r.segments.date;
     byDay[day] = byDay[day] || { invest: 0, impressions: 0, clicks: 0, conversions: 0 };
@@ -221,9 +260,7 @@ async function fetchGoogleAdsData(env, refreshToken, customerId, start, end) {
   return byDay;
 }
 
-/* ======================================================================
-   META ADS (Facebook/Instagram) — OAuth
-   ====================================================================== */
+/* ---------- Meta Ads ---------- */
 async function authMetaStart(url, env) {
   const clientId = url.searchParams.get("clientId") || "default";
   const redirectUri = `${env.APP_BASE_URL}/api/auth/meta/callback`;
@@ -267,9 +304,25 @@ async function authMetaCallback(url, env) {
     meta: { access_token: longData.access_token || tokenData.access_token, connected_at: Date.now() },
   });
 
-  return new Response(paginaSucesso("Meta Ads"), {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  return new Response(paginaSucesso("Meta Ads"), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+}
+
+// A Graph API do Meta pagina os resultados (normalmente 25-100 por página).
+// Períodos longos ou contas com muitas campanhas facilmente ultrapassam uma
+// página só — seguir "paging.next" evita perder linhas silenciosamente.
+async function fetchMetaTodasPaginas(primeiraUrl) {
+  let linhas = [];
+  let proximaUrl = primeiraUrl;
+  let paginas = 0;
+  while (proximaUrl && paginas < 50) {
+    const res = await fetch(proximaUrl);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    linhas = linhas.concat(data.data || []);
+    proximaUrl = data.paging && data.paging.next ? data.paging.next : null;
+    paginas++;
+  }
+  return linhas;
 }
 
 async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) {
@@ -280,33 +333,22 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
     `https://graph.facebook.com/${META_API_VERSION}/act_${adAccountId}/insights` +
     `?time_range=${timeRange}&time_increment=1&level=account` +
     `&fields=spend,impressions,clicks,actions&breakdowns=publisher_platform` +
-    `&access_token=${accessToken}`;
+    `&limit=100&access_token=${accessToken}`;
 
-  const res = await fetch(insightsUrl);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-
-  const TIPOS_CONVERSAO = [
-    "lead", "purchase", "offsite_conversion", "onsite_conversion",
-    "complete_registration", "messaging_conversation_started",
-    "messaging_first_reply",
-  ];
-  function ehConversao(actionType) {
-    return TIPOS_CONVERSAO.some((tipo) => actionType.includes(tipo));
-  }
+  const linhas = await fetchMetaTodasPaginas(insightsUrl);
 
   const byDay = {};
-  (data.data || []).forEach((r) => {
+  linhas.forEach((r) => {
     const day = r.date_start;
     byDay[day] = byDay[day] || {
       invest: 0, impressions: 0, clicks: 0, conversions: 0,
       fbClicks: 0, igClicks: 0, profileVisits: 0, newFollowers: 0,
     };
 
-    const acoes = r.actions || [];
-    const linkClicks = acoes
-      .filter((a) => a.action_type === "link_click")
-      .reduce((soma, a) => soma + Number(a.value || 0), 0);
+    // Cliques no link — é essa a métrica que aparece no Gerenciador de
+    // Anúncios como "Cliques no link" (mais relevante do que o campo bruto
+    // "clicks", que também conta curtidas, comentários e outras interações).
+    const linkClicks = calcularLinkClicks(r.actions);
 
     byDay[day].invest += Number(r.spend || 0);
     byDay[day].impressions += Number(r.impressions || 0);
@@ -314,10 +356,12 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
     if (r.publisher_platform === "facebook") byDay[day].fbClicks += linkClicks;
     if (r.publisher_platform === "instagram") byDay[day].igClicks += linkClicks;
 
-    const conversoes = acoes.filter((a) => ehConversao(a.action_type));
-    byDay[day].conversions += conversoes.reduce((soma, a) => soma + Number(a.value || 0), 0);
+    byDay[day].conversions += calcularResultado(r.actions);
   });
 
+  // Visitas ao perfil e novos seguidores — exige a conta comercial do
+  // Instagram vinculada (o campo "Meta Ads — Instagram User ID" na
+  // configuração do cliente). Sem esse ID, ficam zerados.
   if (igUserId) {
     try {
       const igUrl =
@@ -345,7 +389,93 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   return byDay;
 }
 
-/* ---------- Rotas auxiliares ---------- */
+/* ---------- Campanhas individuais (dados reais, para a tabela) ---------- */
+
+// Uma linha por campanha do Google Ads, já somada no período inteiro
+// (sem quebrar por dia — é isso que a tabela do painel precisa).
+async function fetchGoogleCampaigns(env, refreshToken, customerId, start, end) {
+  if (!customerId) return [];
+  const accessToken = await getGoogleAccessToken(env, refreshToken);
+
+  // Sem "segments.date" no SELECT: o Google Ads soma automaticamente
+  // todo o período do WHERE numa linha só por campanha.
+  const query = `
+    SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions
+    FROM campaign
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+      AND metrics.impressions > 0
+  `;
+
+  const res = await fetch(
+    `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:searchStream`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "developer-token": env.GOOGLE_DEVELOPER_TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query }),
+    }
+  );
+  const data = await res.json();
+  if (data.error) throw new Error(JSON.stringify(data.error));
+
+  const results = extrairLinhasGoogleAds(data);
+  return results.map((r) => ({
+    name: r.campaign.name,
+    platform: "google",
+    invest: Number(r.metrics.costMicros || 0) / 1e6,
+    impressions: Number(r.metrics.impressions || 0),
+    clicks: Number(r.metrics.clicks || 0),
+    results: Number(r.metrics.conversions || 0),
+  }));
+}
+
+// Uma linha por campanha do Meta Ads, somada no período (Facebook +
+// Instagram juntos), na mesma lógica de "resultado" usada no resto do painel.
+async function fetchMetaCampaigns(accessToken, adAccountId, start, end) {
+  if (!adAccountId) return [];
+
+  const timeRange = encodeURIComponent(JSON.stringify({ since: start, until: end }));
+  const url =
+    `https://graph.facebook.com/${META_API_VERSION}/act_${adAccountId}/insights` +
+    `?level=campaign&time_range=${timeRange}` +
+    `&fields=campaign_name,spend,impressions,clicks,actions` +
+    `&limit=100&access_token=${accessToken}`;
+
+  const linhas = await fetchMetaTodasPaginas(url);
+
+  return linhas.map((r) => ({
+    name: r.campaign_name,
+    platform: "meta",
+    invest: Number(r.spend || 0),
+    impressions: Number(r.impressions || 0),
+    clicks: calcularLinkClicks(r.actions),
+    results: calcularResultado(r.actions),
+  }));
+}
+
+
+// O token de longa duração do Meta dura ~60 dias a partir da conexão e não
+// é renovado sozinho — passado esse prazo, as chamadas de API começam a
+// falhar (aparecendo como erro em /api/metrics) até o cliente ser
+// reconectado. Avisamos com antecedência em vez de deixar o dono da agência
+// descobrir só quando o relatório de um cliente parar de atualizar.
+const META_TOKEN_DURACAO_DIAS = 60;
+const META_TOKEN_AVISO_DIAS = 7;
+
+function calcularStatusTokenMeta(meta) {
+  if (!meta || !meta.access_token || !meta.connected_at) return null;
+  const expiraEm = meta.connected_at + META_TOKEN_DURACAO_DIAS * 24 * 60 * 60 * 1000;
+  const diasRestantes = Math.ceil((expiraEm - Date.now()) / (24 * 60 * 60 * 1000));
+  return {
+    expiresAt: expiraEm,
+    daysLeft: diasRestantes,
+    expiringSoon: diasRestantes <= META_TOKEN_AVISO_DIAS,
+  };
+}
+
 async function apiStatus(url, env) {
   const clientId = url.searchParams.get("clientId") || "default";
   const data = await getClient(env, clientId);
@@ -355,7 +485,24 @@ async function apiStatus(url, env) {
     googleCustomerId: data.googleCustomerId || null,
     metaAdAccountId: data.metaAdAccountId || null,
     metaIgUserId: data.metaIgUserId || null,
+    metaToken: calcularStatusTokenMeta(data.meta),
   });
+}
+
+// Lista central de clientes já configurados, guardada no próprio KV (a
+// chave de cada cliente é sempre "client:<id>"). Antes disso, a lista só
+// existia no localStorage do navegador — trocar de computador ou limpar o
+// navegador fazia o dono da agência perder a lista de slugs dos clientes.
+async function apiClients(env) {
+  const ids = [];
+  let cursor;
+  do {
+    const pagina = await env.CLIENTS_KV.list({ prefix: "client:", cursor });
+    pagina.keys.forEach((k) => ids.push(k.name.slice("client:".length)));
+    cursor = pagina.list_complete ? undefined : pagina.cursor;
+  } while (cursor);
+
+  return json({ clients: ids.sort() });
 }
 
 async function apiClientConfig(request, url, env) {
@@ -369,6 +516,18 @@ async function apiClientConfig(request, url, env) {
   return json({ ok: true });
 }
 
+// Guarda a resposta de /api/metrics por alguns minutos no KV. Cada troca de
+// filtro de data recarregava tudo direto do Google/Meta — lento, e arrisca
+// esbarrar em limite de cota do Google Ads em contas com muitas campanhas.
+// A chave inclui os IDs de conta configurados: se o dono reconfigurar as
+// contas do cliente, a chave muda sozinha e o cache antigo nunca é lido.
+const METRICS_CACHE_TTL_SEGUNDOS = 600;
+
+function chaveCacheMetrics(clientId, start, end, data) {
+  const config = [data.googleCustomerId || "", data.metaAdAccountId || "", data.metaIgUserId || ""].join("|");
+  return `metrics:${sanitizeClientId(clientId)}:${start}:${end}:${config}`;
+}
+
 async function apiMetrics(url, env) {
   const clientId = url.searchParams.get("clientId") || "default";
   const start = url.searchParams.get("start");
@@ -379,16 +538,46 @@ async function apiMetrics(url, env) {
     return json({ error: "Cliente não encontrado. Conecte as contas primeiro." }, 404);
   }
 
-  const [googleByDay, metaByDay] = await Promise.all([
+  const cacheKey = chaveCacheMetrics(clientId, start, end, data);
+  const cacheado = await env.CLIENTS_KV.get(cacheKey);
+  if (cacheado) return json(JSON.parse(cacheado));
+
+  // Google e Meta são tratados como independentes: se uma plataforma
+  // falhar (token expirado, conta desconectada, erro da API), a outra
+  // continua funcionando normalmente. Antes, um erro de qualquer uma das
+  // duas derrubava a chamada inteira e o painel caía pro modo demonstração
+  // sem avisar que os dados reais pararam de carregar.
+  const errors = { google: null, meta: null };
+
+  const [googleByDay, metaByDay, googleCampaigns, metaCampaigns] = await Promise.all([
     data.google && data.google.refresh_token
       ? fetchGoogleAdsData(env, data.google.refresh_token, data.googleCustomerId, start, end)
+          .catch((e) => { errors.google = e.message; return null; })
       : null,
     data.meta && data.meta.access_token
       ? fetchMetaAdsData(data.meta.access_token, data.metaAdAccountId, data.metaIgUserId, start, end)
+          .catch((e) => { errors.meta = e.message; return null; })
       : null,
+    data.google && data.google.refresh_token
+      ? fetchGoogleCampaigns(env, data.google.refresh_token, data.googleCustomerId, start, end).catch(() => [])
+      : [],
+    data.meta && data.meta.access_token
+      ? fetchMetaCampaigns(data.meta.access_token, data.metaAdAccountId, start, end).catch(() => [])
+      : [],
   ]);
 
-  return json({ google: googleByDay, meta: metaByDay });
+  const campaigns = [...googleCampaigns, ...metaCampaigns].sort((a, b) => b.invest - a.invest);
+
+  const resultado = { google: googleByDay, meta: metaByDay, campaigns, errors };
+
+  // Só guarda em cache quando deu tudo certo — assim, se uma conta falhou
+  // (token expirado etc.), a próxima tentativa do usuário bate direto na
+  // API de novo em vez de repetir o erro por até 10 minutos.
+  if (!errors.google && !errors.meta) {
+    await env.CLIENTS_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: METRICS_CACHE_TTL_SEGUNDOS });
+  }
+
+  return json(resultado);
 }
 
 /* ---------- Roteador principal ---------- */
@@ -410,6 +599,7 @@ export default {
       else if (pathname === "/api/auth/meta/start") resposta = await authMetaStart(url, env);
       else if (pathname === "/api/auth/meta/callback") resposta = await authMetaCallback(url, env);
       else if (pathname === "/api/status" && request.method === "GET") resposta = await apiStatus(url, env);
+      else if (pathname === "/api/clients" && request.method === "GET") resposta = await apiClients(env);
       else if (pathname === "/api/client-config" && request.method === "POST") resposta = await apiClientConfig(request, url, env);
       else if (pathname === "/api/metrics" && request.method === "GET") resposta = await apiMetrics(url, env);
       else resposta = await env.ASSETS.fetch(request);
