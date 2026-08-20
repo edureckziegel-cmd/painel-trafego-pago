@@ -131,6 +131,18 @@
     border-radius:999px;
     padding:3px;
   }
+  .logout-link{
+    width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.14);
+    color:#cfe4ea;
+    font-size:15px;
+    text-decoration:none;
+    transition:background .15s ease, color .15s ease;
+  }
+  .logout-link:hover{ background:rgba(201,90,44,0.35); color:#fff; }
   .theme-btn{
     width:30px; height:30px;
     border-radius:50%;
@@ -941,6 +953,7 @@ body.theme-dark #top-loading-bar{ background:linear-gradient(90deg, var(--teal),
           <span class="client-switch-icon">▾</span>
         </button>
       </div>
+      <a class="logout-link" href="/logout" title="Sair">⏻</a>
     </div>
   </div>
 
@@ -1695,7 +1708,7 @@ document.getElementById('btn-pdf').addEventListener('click', async ()=>{
 
   // Esconde tudo que é "controle" (filtros, botões, seletor de cliente) —
   // isso não deve aparecer no relatório que vai pro cliente.
-  const seletoresParaEsconder = ['.connection-bar', '.filters', '#client-panel', '#account-config-panel', '.theme-toggle'];
+  const seletoresParaEsconder = ['.connection-bar', '.filters', '#client-panel', '#account-config-panel', '.theme-toggle', '.logout-link'];
   const paraRestaurar = [];
   seletoresParaEsconder.forEach(sel=>{
     document.querySelectorAll(sel).forEach(el=>{
@@ -1885,9 +1898,21 @@ document.getElementById('account-config-save').addEventListener('click', async (
   btn.disabled = false;
 });
 
+// Se a sessão expirou (cookie de login venceu) enquanto o painel estava
+// aberto, a API responde 401 — manda pra tela de login em vez de deixar o
+// painel parecer quebrado ou cair sozinho pro modo demonstração.
+function redirecionarSeSessaoExpirou(resp){
+  if(resp.status === 401){
+    window.location.href = '/login';
+    return true;
+  }
+  return false;
+}
+
 async function verificarConexoes(){
   try{
     const resp = await fetch(`/api/status?clientId=${encodeURIComponent(CLIENT_ID)}`);
+    if(redirecionarSeSessaoExpirou(resp)) return { google:false, meta:false };
     if(!resp.ok) throw new Error('status indisponível');
     const status = await resp.json();
     ultimoStatus = status;
@@ -1958,6 +1983,7 @@ async function tentarCarregarDadosReais(status){
 
   try{
     const resp = await fetch(`/api/metrics?clientId=${encodeURIComponent(CLIENT_ID)}&start=${start}&end=${end}`);
+    if(redirecionarSeSessaoExpirou(resp)) return false;
     if(!resp.ok) throw new Error('Falha ao buscar métricas');
     const json = await resp.json();
 

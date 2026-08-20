@@ -70,47 +70,145 @@ function safeEqual(a, b) {
   return diff === 0;
 }
 
-// Confere o login/senha (HTTP Basic Auth) em TODAS as requisições, antes
-// de qualquer outra coisa rodar. Sem usuário/senha certos, nada no site
-// funciona — nem a página, nem a API.
-function checkAuth(request, env) {
-  if (!env.DASHBOARD_USER || !env.DASHBOARD_PASSWORD) {
-    // Se as credenciais não foram configuradas ainda, bloqueia por padrão
-    // (mais seguro do que deixar aberto por engano).
-    return false;
-  }
-  const header = request.headers.get("Authorization") || "";
-  if (!header.startsWith("Basic ")) return false;
+/* ---------- Sessão de login (cookie assinado) ----------
+   Antes disso o painel usava HTTP Basic Auth (o popup nativo do navegador).
+   Trocado porque esse popup guarda a senha em cache no navegador sem
+   nenhum controle — trocar a senha na Cloudflare não "esquecia" a antiga
+   no navegador, e não existia um jeito de sair/deslogar. Agora é uma tela
+   de login própria + cookie de sessão. */
 
-  let decoded;
-  try {
-    // atob() devolve os bytes originais como uma "string binária" (um
-    // caractere por byte). Se o usuário/senha tiver acento ou símbolo
-    // especial, esses bytes representam UTF-8 e precisam ser decodificados
-    // de volta corretamente — senão a comparação nunca bate, mesmo
-    // digitando a senha certa.
-    const binario = atob(header.slice(6));
-    const bytes = Uint8Array.from(binario, (c) => c.charCodeAt(0));
-    decoded = new TextDecoder("utf-8").decode(bytes);
-  } catch (e) {
-    return false;
-  }
-  const sep = decoded.indexOf(":");
-  if (sep === -1) return false;
-  const user = decoded.slice(0, sep);
-  const pass = decoded.slice(sep + 1);
+const SESSAO_COOKIE = "pt_session";
+const SESSAO_DURACAO_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
 
-  return safeEqual(user, env.DASHBOARD_USER) && safeEqual(pass, env.DASHBOARD_PASSWORD);
+async function assinarHmac(mensagem, chaveTexto) {
+  const enc = new TextEncoder();
+  const chave = await crypto.subtle.importKey(
+    "raw", enc.encode(chaveTexto), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const assinatura = await crypto.subtle.sign("HMAC", chave, enc.encode(mensagem));
+  return btoa(String.fromCharCode(...new Uint8Array(assinatura)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function respostaNaoAutorizada() {
-  return new Response("Autenticação necessária.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Painel de Tráfego Pago", charset="UTF-8"',
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-  });
+// O token de sessão é assinado usando a própria senha do painel como
+// chave secreta — assim não é preciso configurar mais nenhum Secret na
+// Cloudflare, e trocar a senha invalida automaticamente qualquer sessão
+// aberta em qualquer aparelho/navegador.
+async function criarTokenSessao(env) {
+  const expira = Date.now() + SESSAO_DURACAO_MS;
+  const assinatura = await assinarHmac(String(expira), env.DASHBOARD_PASSWORD);
+  return `${expira}.${assinatura}`;
+}
+
+async function tokenSessaoValido(token, env) {
+  if (!token) return false;
+  const partes = token.split(".");
+  if (partes.length !== 2) return false;
+  const [expiraStr, assinatura] = partes;
+  if (!expiraStr || !assinatura) return false;
+  if (Date.now() > Number(expiraStr)) return false;
+  const esperado = await assinarHmac(expiraStr, env.DASHBOARD_PASSWORD);
+  return safeEqual(assinatura, esperado);
+}
+
+function lerCookie(request, nome) {
+  const header = request.headers.get("Cookie") || "";
+  const parte = header.split(";").map((s) => s.trim()).find((s) => s.startsWith(nome + "="));
+  return parte ? decodeURIComponent(parte.slice(nome.length + 1)) : null;
+}
+
+async function sessaoValida(request, env) {
+  if (!env.DASHBOARD_USER || !env.DASHBOARD_PASSWORD) return false;
+  return tokenSessaoValido(lerCookie(request, SESSAO_COOKIE), env);
+}
+
+function paginaLogin(comErro) {
+  return new Response(`<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar — Painel de Tráfego Pago</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'Aileron','Helvetica Neue',Arial,sans-serif;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(58,152,174,0.35), transparent 45%),
+      radial-gradient(circle at 82% 78%, rgba(58,152,174,0.25), transparent 50%),
+      #16242c;
+  }
+  .card{
+    width:340px; max-width:88vw;
+    background:rgba(255,255,255,0.07);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:18px;
+    padding:36px 30px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+  }
+  .eyebrow{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#7fd0e6; margin:0 0 6px; }
+  .logo{ font-family:'League Spartan',sans-serif; font-weight:800; font-size:21px; color:#fff; margin:0 0 22px; }
+  label{ display:block; font-size:12.5px; color:#cfe4ea; margin:14px 0 6px; }
+  input{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
+    background:rgba(255,255,255,0.06); color:#fff; font-size:14px; outline:none;
+  }
+  input:focus{ border-color:#3a98ae; }
+  button{
+    width:100%; margin-top:22px; padding:12px; border:none; border-radius:10px;
+    background:#3a98ae; color:#fff; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  button:hover{ background:#4aa9bf; }
+  .erro{
+    margin-top:14px; padding:10px 12px; border-radius:8px; font-size:12.5px;
+    background:rgba(201,90,44,0.16); color:#ffb98a; border:1px solid rgba(201,90,44,0.35);
+  }
+</style>
+</head>
+<body>
+  <form class="card" method="POST" action="/api/login">
+    <p class="eyebrow">ER Tráfego Pago</p>
+    <h1 class="logo">Painel de Tráfego Pago</h1>
+    <label>Usuário</label>
+    <input type="text" name="user" autocomplete="username" required autofocus>
+    <label>Senha</label>
+    <input type="password" name="pass" autocomplete="current-password" required>
+    <button type="submit">Entrar</button>
+    ${comErro ? `<div class="erro">Usuário ou senha incorretos.</div>` : ""}
+  </form>
+</body>
+</html>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+}
+
+async function apiLogin(request, env) {
+  const form = await request.formData();
+  const user = String(form.get("user") || "");
+  const pass = String(form.get("pass") || "");
+
+  if (
+    !env.DASHBOARD_USER || !env.DASHBOARD_PASSWORD ||
+    !safeEqual(user, env.DASHBOARD_USER) || !safeEqual(pass, env.DASHBOARD_PASSWORD)
+  ) {
+    return new Response(null, { status: 302, headers: { Location: "/login?erro=1" } });
+  }
+
+  const token = await criarTokenSessao(env);
+  const headers = new Headers({ Location: "/" });
+  headers.append(
+    "Set-Cookie",
+    `${SESSAO_COOKIE}=${token}; Path=/; Max-Age=${SESSAO_DURACAO_MS / 1000}; HttpOnly; Secure; SameSite=Lax`
+  );
+  return new Response(null, { status: 302, headers });
+}
+
+function fazerLogout() {
+  const headers = new Headers({ Location: "/login" });
+  headers.append("Set-Cookie", `${SESSAO_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+  return new Response(null, { status: 302, headers });
 }
 
 // Cabeçalhos de segurança aplicados em toda resposta: impedem que o site
@@ -621,14 +719,29 @@ async function apiMetrics(url, env) {
 /* ---------- Roteador principal ---------- */
 export default {
   async fetch(request, env, ctx) {
-    // Primeiro de tudo: exige login e senha. Sem isso, nada mais roda —
-    // nem a página, nem nenhuma rota de API.
-    if (!checkAuth(request, env)) {
-      return respostaNaoAutorizada();
-    }
-
     const url = new URL(request.url);
     const { pathname } = url;
+
+    // Login e logout precisam funcionar mesmo sem sessão válida (senão
+    // ninguém consegue entrar).
+    if (pathname === "/login" && request.method === "GET") {
+      return comHeadersSeguranca(paginaLogin(url.searchParams.get("erro")));
+    }
+    if (pathname === "/api/login" && request.method === "POST") {
+      return comHeadersSeguranca(await apiLogin(request, env));
+    }
+    if (pathname === "/logout") {
+      return comHeadersSeguranca(fazerLogout());
+    }
+
+    // Todo o resto do site exige sessão válida (cookie de login). Rotas de
+    // API devolvem 401 em JSON; o resto manda pra tela de login.
+    if (!(await sessaoValida(request, env))) {
+      if (pathname.startsWith("/api/")) {
+        return comHeadersSeguranca(json({ error: "Sessão expirada. Faça login novamente." }, 401));
+      }
+      return comHeadersSeguranca(Response.redirect(`${url.origin}/login`, 302));
+    }
 
     let resposta;
     try {
