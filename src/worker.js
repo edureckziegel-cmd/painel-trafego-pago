@@ -329,16 +329,41 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   if (!adAccountId) throw new Error("Falta configurar o Ad Account ID do Meta Ads deste cliente.");
 
   const timeRange = encodeURIComponent(JSON.stringify({ since: start, until: end }));
-  const insightsUrl =
+
+  // Duas chamadas separadas de propósito:
+  //
+  // 1) SEM breakdown — dá o total real de investimento/impressões/cliques/
+  //    resultados por dia, do jeito que o Gerenciador de Anúncios mostra.
+  //
+  // 2) COM breakdown=publisher_platform — usada só pra saber a divisão de
+  //    cliques entre Facebook e Instagram (pro gráfico "Cliques por rede").
+  //
+  // Por quê duas: quando se pede "actions" com breakdown por
+  // publisher_platform, o Meta às vezes atribui a MESMA conversão (ex: uma
+  // conversa de mensagem) às duas linhas (Facebook e Instagram) do mesmo
+  // dia — e somar as duas linhas duplica o resultado. Foi exatamente esse
+  // bug real encontrado: o card de "Resultados" mostrava 62, enquanto a
+  // tabela de campanhas (que não usa breakdown) e o Gerenciador de Anúncios
+  // mostravam 32. Usando a chamada sem breakdown pra contar resultados,
+  // esse problema não acontece.
+  const semBreakdownUrl =
     `https://graph.facebook.com/${META_API_VERSION}/act_${adAccountId}/insights` +
     `?time_range=${timeRange}&time_increment=1&level=account` +
-    `&fields=spend,impressions,clicks,actions&breakdowns=publisher_platform` +
+    `&fields=spend,impressions,clicks,actions` +
+    `&limit=100&access_token=${accessToken}`;
+  const comBreakdownUrl =
+    `https://graph.facebook.com/${META_API_VERSION}/act_${adAccountId}/insights` +
+    `?time_range=${timeRange}&time_increment=1&level=account` +
+    `&fields=actions&breakdowns=publisher_platform` +
     `&limit=100&access_token=${accessToken}`;
 
-  const linhas = await fetchMetaTodasPaginas(insightsUrl);
+  const [linhasTotais, linhasPorRede] = await Promise.all([
+    fetchMetaTodasPaginas(semBreakdownUrl),
+    fetchMetaTodasPaginas(comBreakdownUrl),
+  ]);
 
   const byDay = {};
-  linhas.forEach((r) => {
+  linhasTotais.forEach((r) => {
     const day = r.date_start;
     byDay[day] = byDay[day] || {
       invest: 0, impressions: 0, clicks: 0, conversions: 0,
@@ -353,10 +378,15 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
     byDay[day].invest += Number(r.spend || 0);
     byDay[day].impressions += Number(r.impressions || 0);
     byDay[day].clicks += linkClicks;
+    byDay[day].conversions += calcularResultado(r.actions);
+  });
+
+  linhasPorRede.forEach((r) => {
+    const day = r.date_start;
+    if (!byDay[day]) return;
+    const linkClicks = calcularLinkClicks(r.actions);
     if (r.publisher_platform === "facebook") byDay[day].fbClicks += linkClicks;
     if (r.publisher_platform === "instagram") byDay[day].igClicks += linkClicks;
-
-    byDay[day].conversions += calcularResultado(r.actions);
   });
 
   // Visitas ao perfil e novos seguidores — exige a conta comercial do
@@ -364,9 +394,17 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   // configuração do cliente). Sem esse ID, ficam zerados.
   if (igUserId) {
     try {
+      // "metric_type=time_series" é obrigatório desde que o Meta separou os
+      // insights do Instagram em dois formatos: um valor total agregado
+      // (total_value, o padrão se você não pedir nada) e uma série diária
+      // (time_series, o que o painel precisa pra plotar por dia). Sem esse
+      // parâmetro, a API não dá erro — só devolve os dados no formato
+      // errado, sem o array "values" que o código abaixo espera, e o
+      // resultado final fica sempre zerado sem nenhum aviso.
       const igUrl =
         `https://graph.facebook.com/${META_API_VERSION}/${igUserId}/insights` +
-        `?metric=profile_views,follower_count&period=day&since=${start}&until=${end}&access_token=${accessToken}`;
+        `?metric=profile_views,follower_count&period=day&metric_type=time_series` +
+        `&since=${start}&until=${end}&access_token=${accessToken}`;
       const igRes = await fetch(igUrl);
       const igData = await igRes.json();
 

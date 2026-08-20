@@ -514,7 +514,10 @@
     padding:17px 18px;
     box-shadow:0 10px 26px rgba(38,74,96,0.09), inset 0 1px 0 rgba(255,255,255,0.6);
     position:relative;
-    overflow:hidden;
+    /* Precisa ficar visível (não "hidden") pra o balão de explicação da
+       métrica (.kpi-card .label:hover::after), que é posicionado acima do
+       card, não ficar cortado pela borda arredondada. */
+    overflow:visible;
     transition:transform .18s ease, box-shadow .18s ease;
   }
   .kpi-card:hover{
@@ -1347,20 +1350,43 @@ function render(){
   }
 
   // ---- Sparklines (mini-gráfico de tendência dentro do card) ----
+  // Curva suavizada (bezier quadrática passando pelos pontos médios, em vez
+  // de linha reta ponto-a-ponto) + área com gradiente por baixo — visual
+  // mais parecido com os sparklines de dashboards modernos, sem o efeito
+  // "zigue-zague" de picos pontiagudos da versão anterior.
   function sparklineSVG(values, cor){
     if(!values || values.length < 2) return '';
-    const w = 100, h = 26, pad = 2;
+    const w = 100, h = 28, pad = 3;
     const min = Math.min(...values), max = Math.max(...values);
     const range = (max - min) || 1;
     const stepX = (w - pad*2) / (values.length - 1);
-    const pontos = values.map((v,i)=>{
-      const x = pad + i*stepX;
-      const y = h - pad - ((v-min)/range) * (h - pad*2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    const areaId = 'spark' + Math.random().toString(36).slice(2,8);
+    const pts = values.map((v,i)=>({
+      x: pad + i*stepX,
+      y: h - pad - ((v-min)/range) * (h - pad*2),
+    }));
+
+    let linha = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for(let i=1;i<pts.length;i++){
+      const p0 = pts[i-1], p1 = pts[i];
+      const midX = (p0.x+p1.x)/2, midY = (p0.y+p1.y)/2;
+      linha += ` Q${p0.x.toFixed(1)},${p0.y.toFixed(1)} ${midX.toFixed(1)},${midY.toFixed(1)}`;
+    }
+    const ultimo = pts[pts.length-1];
+    linha += ` T${ultimo.x.toFixed(1)},${ultimo.y.toFixed(1)}`;
+
+    const area = `${linha} L${ultimo.x.toFixed(1)},${h} L${pts[0].x.toFixed(1)},${h} Z`;
+    const gradId = 'sparkGrad' + Math.random().toString(36).slice(2,8);
+
     return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-      <polyline points="${pontos}" fill="none" stroke="${cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${cor}" stop-opacity="0.32"/>
+          <stop offset="100%" stop-color="${cor}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${area}" fill="url(#${gradId})" stroke="none"/>
+      <path d="${linha}" fill="none" stroke="${cor}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${ultimo.x.toFixed(1)}" cy="${ultimo.y.toFixed(1)}" r="2" fill="${cor}"/>
     </svg>`;
   }
 
