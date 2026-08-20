@@ -1135,10 +1135,7 @@ body.theme-dark #top-loading-bar{ background:linear-gradient(90deg, var(--teal),
     <div class="insight-chips" id="insight-chips"></div>
   </div>
 
-  <footer>
-    <span id="footer-disclaimer">Painel gerado automaticamente a partir dos dados de campanha.</span>
-    <span>ER Tráfego Pago <span id="footer-client-name"></span></span>
-  </footer>
+  <footer></footer>
 
 </div>
 
@@ -1178,13 +1175,14 @@ function gerarDadosFicticios(){
 
     const profileVisits = Math.round(20 + rand()*28 + (weekday===0||weekday===6 ? 8 : 0));
     const newFollowers = Math.round(profileVisits * (0.18 + rand()*0.12));
+    const mReach = Math.round(mImpr * (0.55 + rand()*0.15));
 
     arr.push({
       day: d,
       date: new Date(2026,7,d),
-      google:{ invest:gInvest, impressions:gImpr, clicks:gClicks, conversions:gConv },
+      google:{ invest:gInvest, impressions:gImpr, clicks:gClicks, conversions:gConv, reach:0 },
       meta:{
-        invest:mInvest, impressions:mImpr, clicks:mClicksTotal, conversions:mConv,
+        invest:mInvest, impressions:mImpr, clicks:mClicksTotal, conversions:mConv, reach:mReach,
         fbClicks:mClicksFB, igClicks:mClicksIG,
         profileVisits, newFollowers
       }
@@ -1200,8 +1198,8 @@ function converterDadosReais(googleByDay, metaByDay){
     ...Object.keys(googleByDay || {}),
     ...Object.keys(metaByDay || {})
   ]);
-  const zeroGoogle = { invest:0, impressions:0, clicks:0, conversions:0 };
-  const zeroMeta = { invest:0, impressions:0, clicks:0, conversions:0, fbClicks:0, igClicks:0, profileVisits:0, newFollowers:0 };
+  const zeroGoogle = { invest:0, impressions:0, clicks:0, conversions:0, reach:0 };
+  const zeroMeta = { invest:0, impressions:0, clicks:0, conversions:0, reach:0, fbClicks:0, igClicks:0, profileVisits:0, newFollowers:0 };
 
   return Array.from(datas).sort().map(dataStr => {
     const [y,m,d] = dataStr.split('-').map(Number);
@@ -1218,9 +1216,6 @@ let dailyData = gerarDadosFicticios();
 let modoDemonstracao = true;
 let campanhasReais = null;
 
-// Receita fictícia associada às conversões (ticket médio ~ R$145)
-const TICKET_MEDIO = 145;
-
 // Explicações em linguagem simples, para quem não é da área de marketing.
 const EXPLICACAO_METRICA = {
   'Investimento total': 'Quanto foi gasto em anúncios no período selecionado, somando todas as plataformas.',
@@ -1230,7 +1225,7 @@ const EXPLICACAO_METRICA = {
   'CPC médio': 'Custo por clique: quanto, em média, foi pago por cada clique recebido.',
   'Resultados (conversões)': 'Quantas ações importantes aconteceram (compra, cadastro, mensagem iniciada, etc.), de acordo com o objetivo da campanha.',
   'Custo por resultado': 'Quanto custou, em média, cada resultado alcançado (cada venda, cadastro ou conversa iniciada).',
-  'ROAS (retorno estimado)': 'Retorno sobre o investimento: quanto voltou em vendas estimadas para cada R$1 gasto em anúncios.',
+  'Alcance': 'Quantidade estimada de pessoas diferentes que viram o anúncio no período (cada pessoa conta uma vez, mesmo vendo várias vezes).',
 };
 
 // Explicações das métricas exclusivas do Meta Ads.
@@ -1282,19 +1277,21 @@ function getFilteredDays(){
 
 function aggregate(days){
   const agg = {
-    google:{invest:0,impressions:0,clicks:0,conversions:0},
-    meta:{invest:0,impressions:0,clicks:0,conversions:0,fbClicks:0,igClicks:0,profileVisits:0,newFollowers:0}
+    google:{invest:0,impressions:0,clicks:0,conversions:0,reach:0},
+    meta:{invest:0,impressions:0,clicks:0,conversions:0,reach:0,fbClicks:0,igClicks:0,profileVisits:0,newFollowers:0}
   };
   days.forEach(r=>{
     agg.google.invest += r.google.invest;
     agg.google.impressions += r.google.impressions;
     agg.google.clicks += r.google.clicks;
     agg.google.conversions += r.google.conversions;
+    agg.google.reach += r.google.reach || 0;
 
     agg.meta.invest += r.meta.invest;
     agg.meta.impressions += r.meta.impressions;
     agg.meta.clicks += r.meta.clicks;
     agg.meta.conversions += r.meta.conversions;
+    agg.meta.reach += r.meta.reach || 0;
     agg.meta.fbClicks += r.meta.fbClicks;
     agg.meta.igClicks += r.meta.igClicks;
     agg.meta.profileVisits += r.meta.profileVisits;
@@ -1327,8 +1324,7 @@ function render(){
   const ctr = totalImpr ? totalClicks/totalImpr : 0;
   const cpc = totalClicks ? totalInvest/totalClicks : 0;
   const cpa = totalConv ? totalInvest/totalConv : 0;
-  const receita = totalConv * TICKET_MEDIO;
-  const roas = totalInvest ? receita/totalInvest : 0;
+  const totalReach = (showGoogle?agg.google.reach:0) + (showMeta?agg.meta.reach:0);
 
   // ---- Comparação com o período anterior equivalente ----
   const inicio = new Date(document.getElementById('date-start').value);
@@ -1338,20 +1334,19 @@ function render(){
   const fimAnterior = new Date(inicio); fimAnterior.setDate(fimAnterior.getDate() - 1);
   const diasAnteriores = dailyData.filter(r => r.date >= inicioAnterior && r.date <= fimAnterior);
 
-  let deltaInvest = null, deltaClicks = null, deltaConv = null, deltaRoas = null;
+  let deltaInvest = null, deltaClicks = null, deltaConv = null, deltaReach = null;
   if(diasAnteriores.length === duracaoDias){
     const aggAnterior = aggregate(diasAnteriores);
     const investAnt = (showGoogle?aggAnterior.google.invest:0) + (showMeta?aggAnterior.meta.invest:0);
     const clicksAnt = (showGoogle?aggAnterior.google.clicks:0) + (showMeta?aggAnterior.meta.clicks:0);
     const convAnt = (showGoogle?aggAnterior.google.conversions:0) + (showMeta?aggAnterior.meta.conversions:0);
-    const receitaAnt = convAnt * TICKET_MEDIO;
-    const roasAnt = investAnt ? receitaAnt/investAnt : 0;
+    const reachAnt = (showGoogle?aggAnterior.google.reach:0) + (showMeta?aggAnterior.meta.reach:0);
 
     const calcDelta = (atual, anterior) => anterior ? ((atual-anterior)/anterior)*100 : null;
     deltaInvest = calcDelta(totalInvest, investAnt);
     deltaClicks = calcDelta(totalClicks, clicksAnt);
     deltaConv = calcDelta(totalConv, convAnt);
-    deltaRoas = calcDelta(roas, roasAnt);
+    deltaReach = calcDelta(totalReach, reachAnt);
   }
 
   function deltaHtml(delta){
@@ -1404,11 +1399,7 @@ function render(){
   const investSerie = days.map(d => (showGoogle?d.google.invest:0) + (showMeta?d.meta.invest:0));
   const clicksSerie = days.map(d => (showGoogle?d.google.clicks:0) + (showMeta?d.meta.clicks:0));
   const convSerie = days.map(d => (showGoogle?d.google.conversions:0) + (showMeta?d.meta.conversions:0));
-  const roasSerie = days.map(d => {
-    const inv = (showGoogle?d.google.invest:0) + (showMeta?d.meta.invest:0);
-    const conv = (showGoogle?d.google.conversions:0) + (showMeta?d.meta.conversions:0);
-    return inv ? (conv*TICKET_MEDIO)/inv : 0;
-  });
+  const reachSerie = days.map(d => (showGoogle?d.google.reach:0) + (showMeta?d.meta.reach:0));
 
   // ---- KPI cards principais ----
   const kpis = [
@@ -1419,7 +1410,7 @@ function render(){
     {label:'CPC médio', value:fmtBRL2(cpc), icon:'💳'},
     {label:'Resultados (conversões)', value:fmtInt(totalConv), navy:true, delta:deltaHtml(deltaConv), icon:'🎯', spark:sparklineSVG(convSerie, isDark()?'#a6e6f5':'#264a60')},
     {label:'Custo por resultado', value:fmtBRL2(cpa), icon:'🧾'},
-    {label:'ROAS (retorno estimado)', value:roas.toFixed(2)+'x', navy:true, delta:deltaHtml(deltaRoas), icon:'🚀', spark:sparklineSVG(roasSerie, isDark()?'#a6e6f5':'#264a60')},
+    {label:'Alcance', value:fmtInt(totalReach), navy:true, delta:deltaHtml(deltaReach), icon:'📡', spark:sparklineSVG(reachSerie, isDark()?'#a6e6f5':'#264a60')},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
     <div class="kpi-card ${k.navy?'navy':''}">
@@ -1457,7 +1448,7 @@ function render(){
 
   renderCharts(days, agg, showGoogle, showMeta);
   renderCampaignTable(platform, days.length);
-  renderAnalysis(agg, showGoogle, showMeta, totalInvest, ctr, cpc, roas);
+  renderAnalysis(agg, showGoogle, showMeta, totalInvest, ctr, cpc, totalReach);
 }
 
 /* =========================================================
@@ -1633,7 +1624,7 @@ function renderCampaignTable(platform, numDays){
 /* =========================================================
    6. ANÁLISE EM TEXTO (gerada a partir dos números)
    ========================================================= */
-function renderAnalysis(agg, showGoogle, showMeta, totalInvest, ctr, cpc, roas){
+function renderAnalysis(agg, showGoogle, showMeta, totalInvest, ctr, cpc, totalReach){
   const parts = [];
   const chips = [];
 
@@ -1655,12 +1646,14 @@ function renderAnalysis(agg, showGoogle, showMeta, totalInvest, ctr, cpc, roas){
     parts.push(`Dentro do Meta Ads, o <strong>Facebook</strong> teve participação relevante nos cliques, complementando os resultados do Instagram. O perfil somou <strong>${fmtInt(agg.meta.newFollowers)}</strong> novos seguidores no período.`);
   }
 
-  parts.push(`Considerando um ticket médio estimado, o retorno sobre o investimento (ROAS) ficou em <strong>${roas.toFixed(2)}x</strong>, ou seja, para cada real investido em anúncios, o retorno estimado em vendas foi de ${fmtBRL2(roas)}.`);
+  if(totalReach){
+    parts.push(`Os anúncios alcançaram aproximadamente <strong>${fmtInt(totalReach)}</strong> pessoas no período (estimativa somando os dias, já que a mesma pessoa pode ter sido alcançada em mais de um dia).`);
+  }
 
   document.getElementById('analysis-text').innerHTML = parts.map(p=>`<p style="margin:0 0 12px;">${p}</p>`).join('');
 
-  chips.push({type: roas>=3?'good':roas>=1.5?'info':'warn', text:`ROAS de ${roas.toFixed(2)}x no período`});
   chips.push({type: ctr>=0.02?'good':'info', text:`CTR médio de ${fmtPct(ctr)}`});
+  if(totalReach) chips.push({type:'info', text:`${fmtInt(totalReach)} pessoas alcançadas no período`});
   if(showMeta) chips.push({type:'info', text:`${fmtInt(agg.meta.newFollowers)} novos seguidores via Meta Ads`});
   if(showGoogle && showMeta) chips.push({type:'info', text:`${agg.meta.invest>agg.google.invest?'Meta Ads':'Google Ads'} concentrou o maior investimento`});
 
@@ -1743,23 +1736,29 @@ document.getElementById('btn-pdf').addEventListener('click', async ()=>{
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    let cursorY = 0;
+    // Margem de segurança em volta do conteúdo — antes as imagens iam de
+    // ponta a ponta da página (0mm), colando no limite físico do papel.
+    const margem = 10;
+    const larguraUtil = pageWidth - margem*2;
+    const alturaUtil = pageHeight - margem*2;
+
+    let cursorY = margem;
     let primeiro = true;
 
     for(const bloco of blocos){
       const canvas = await html2canvas(bloco, {scale:2, backgroundColor:'#f4f7f8', useCORS:true});
       const imgData = canvas.toDataURL('image/png');
-      const imgWidth = pageWidth;
+      const imgWidth = larguraUtil;
       const imgHeight = canvas.height * imgWidth / canvas.width;
 
       // Se esse bloco não cabe mais no espaço restante da página atual,
       // começa uma página nova (e só aí desenha o bloco).
-      if(!primeiro && (cursorY + imgHeight > pageHeight)){
+      if(!primeiro && (cursorY + imgHeight > margem + alturaUtil)){
         pdf.addPage();
-        cursorY = 0;
+        cursorY = margem;
       }
 
-      pdf.addImage(imgData, 'PNG', 0, cursorY, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', margem, cursorY, imgWidth, imgHeight);
       cursorY += imgHeight;
       primeiro = false;
     }
@@ -1803,9 +1802,16 @@ function irParaCliente(id){
   window.location.href = url.toString();
 }
 
+// Exibe o slug do cliente (ex: "loja-horizonte") formatado como nome
+// próprio: "Loja Horizonte" — primeira letra de cada palavra maiúscula.
+function formatarNomeCliente(id){
+  return String(id || '').split(/[-_]+/).filter(Boolean)
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ') || id;
+}
+
 salvarClienteConhecido(CLIENT_ID);
-document.getElementById('client-name-display').textContent = CLIENT_ID;
-document.getElementById('footer-client-name').textContent = `× ${CLIENT_ID}`;
+document.getElementById('client-name-display').textContent = formatarNomeCliente(CLIENT_ID);
 document.getElementById('client-url-example').textContent =
   `${window.location.origin}/?cliente=${CLIENT_ID}`;
 
@@ -2039,10 +2045,6 @@ function exibirAvisoSincronizacao(status, errors){
 function atualizarSeloDemonstracao(){
   const badge = document.getElementById('demo-badge');
   badge.classList.toggle('hidden', !modoDemonstracao);
-
-  document.getElementById('footer-disclaimer').textContent = modoDemonstracao
-    ? 'Painel gerado automaticamente a partir dos dados de campanha. Números fictícios para fins de demonstração.'
-    : 'Painel gerado automaticamente a partir dos dados reais das campanhas.';
 }
 
 /* =========================================================

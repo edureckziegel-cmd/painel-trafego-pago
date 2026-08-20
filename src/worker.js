@@ -447,7 +447,7 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   const semBreakdownUrl =
     `https://graph.facebook.com/${META_API_VERSION}/act_${adAccountId}/insights` +
     `?time_range=${timeRange}&time_increment=1&level=account` +
-    `&fields=spend,impressions,clicks,actions` +
+    `&fields=spend,impressions,clicks,actions,reach` +
     `&limit=100&access_token=${accessToken}`;
   const comBreakdownUrl =
     `https://graph.facebook.com/${META_API_VERSION}/act_${adAccountId}/insights` +
@@ -464,7 +464,7 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
   linhasTotais.forEach((r) => {
     const day = r.date_start;
     byDay[day] = byDay[day] || {
-      invest: 0, impressions: 0, clicks: 0, conversions: 0,
+      invest: 0, impressions: 0, clicks: 0, conversions: 0, reach: 0,
       fbClicks: 0, igClicks: 0, profileVisits: 0, newFollowers: 0,
     };
 
@@ -477,6 +477,14 @@ async function fetchMetaAdsData(accessToken, adAccountId, igUserId, start, end) 
     byDay[day].impressions += Number(r.impressions || 0);
     byDay[day].clicks += linkClicks;
     byDay[day].conversions += calcularResultado(r.actions);
+    // "reach" é alcance ÚNICO (pessoas diferentes), não soma perfeitamente
+    // certo entre dias (a mesma pessoa pode ser alcançada em dias
+    // diferentes) — somar os dias dá uma estimativa, não o alcance único
+    // exato do período inteiro. É a mesma limitação que qualquer painel
+    // que soma métricas diárias tem; documentado aqui pra não se assustar
+    // se não bater 100% com o alcance "acumulado" que a Meta mostra pro
+    // período todo.
+    byDay[day].reach += Number(r.reach || 0);
   });
 
   linhasPorRede.forEach((r) => {
